@@ -1,0 +1,284 @@
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  Modal,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  ScrollView,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "../theme/useTheme";
+import { Icon } from "./ui/Icon";
+import { RecordType } from "../app/state/RecordsContext";
+
+const typeLabels: RecordType[] = ["FOOD", "POOP", "SLEEP", "WEIGHT", "NOTE"];
+
+function prettyType(t: RecordType) {
+  switch (t) {
+    case "FOOD":
+      return "Comida";
+    case "POOP":
+      return "Deposición";
+    case "SLEEP":
+      return "Sueño";
+    case "WEIGHT":
+      return "Peso";
+    case "NOTE":
+      return "Nota";
+  }
+}
+
+interface EditRecordModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onSave: (data: {
+    type: RecordType;
+    title: string;
+    time: string;
+    value: string;
+  }) => void;
+  initialData?: {
+    type: RecordType;
+    title: string;
+    time: string;
+    value: string;
+  };
+  mode: "edit" | "confirm";
+  petName?: string; 
+}
+
+export default function EditRecordModal({
+  visible,
+  onClose,
+  onSave,
+  initialData,
+  mode,
+}: EditRecordModalProps) {
+  const t = useTheme();
+  const insets = useSafeAreaInsets();
+
+  const [type, setType] = useState<RecordType>(initialData?.type || "FOOD");
+  const [title, setTitle] = useState(initialData?.title || "");
+  const [time, setTime] = useState(initialData?.time || "");
+  const [value, setValue] = useState(initialData?.value || "");
+
+  useEffect(() => {
+    if (visible && initialData) {
+      setType(initialData.type);
+      setTitle(initialData.title);
+      setTime(initialData.time);
+      setValue(initialData.value);
+    }
+  }, [visible, initialData]);
+
+  const handleSave = () => {
+    const trimmedTitle = title.trim();
+    const trimmedTime = time.trim();
+    const trimmedValue = value.trim();
+
+    if (!trimmedTitle || !trimmedTime || !trimmedValue) {
+      return;
+    }
+
+    // Validar formato de hora (HH:mm)
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(trimmedTime)) {
+      return;
+    }
+
+    onSave({
+      type,
+      title: trimmedTitle,
+      time: trimmedTime,
+      value: trimmedValue,
+    });
+    onClose();
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.backdrop} onPress={onClose} />
+      <View
+        style={[
+          styles.modalCard,
+          {
+            backgroundColor: t.card,
+            borderColor: t.border,
+            paddingBottom: insets.bottom + 14,
+          },
+        ]}
+      >
+        <View style={styles.modalHeader}>
+          <Text style={[styles.modalTitle, { color: t.text }]}>
+            {mode === "edit" ? "Editar registro" : "Confirmar rutina"}
+          </Text>
+          <Pressable onPress={onClose} hitSlop={10}>
+            <Icon name="close" size={24} color={t.textMuted} />
+          </Pressable>
+        </View>
+
+        <ScrollView style={styles.scrollContent}>
+          <Text style={[styles.label, { color: t.textMuted }]}>TIPO</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.typeRow}
+          >
+            {typeLabels.map((tp) => {
+              const active = tp === type;
+              return (
+                <Pressable
+                  key={tp}
+                  onPress={() => setType(tp)}
+                  style={[
+                    styles.typeChip,
+                    {
+                      backgroundColor: active ? t.accentSoft : t.card,
+                      borderColor: active ? "transparent" : t.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.typeText,
+                      { color: active ? t.accent : t.textMuted },
+                    ]}
+                  >
+                    {prettyType(tp)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          <Text style={[styles.label, { color: t.textMuted }]}>TÍTULO</Text>
+          <TextInput
+            value={title}
+            onChangeText={setTitle}
+            placeholder="Ej: Pienso, Paseo..."
+            placeholderTextColor={t.textMuted}
+            style={[
+              styles.input,
+              { color: t.text, borderColor: t.border, backgroundColor: t.bg },
+            ]}
+          />
+
+          <Text style={[styles.label, { color: t.textMuted }]}>
+            HORA (HH:mm)
+          </Text>
+          <TextInput
+            value={time}
+            onChangeText={setTime}
+            placeholder="08:00"
+            placeholderTextColor={t.textMuted}
+            keyboardType="numbers-and-punctuation"
+            style={[
+              styles.input,
+              { color: t.text, borderColor: t.border, backgroundColor: t.bg },
+            ]}
+          />
+
+          <Text style={[styles.label, { color: t.textMuted }]}>VALOR</Text>
+          <TextInput
+            value={value}
+            onChangeText={setValue}
+            placeholder="Ej: 150 g, 30 min, 4,2 kg..."
+            placeholderTextColor={t.textMuted}
+            style={[
+              styles.input,
+              { color: t.text, borderColor: t.border, backgroundColor: t.bg },
+            ]}
+          />
+        </ScrollView>
+
+        <View style={styles.modalActions}>
+          <Pressable
+            onPress={onClose}
+            style={[
+              styles.btn,
+              { backgroundColor: t.bg, borderColor: t.border },
+            ]}
+          >
+            <Text style={{ color: t.textMuted, fontWeight: "700" }}>
+              Cancelar
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={handleSave}
+            style={[
+              styles.btn,
+              { backgroundColor: t.accent, borderColor: "transparent" },
+            ]}
+          >
+            <Text style={{ color: "#fff", fontWeight: "800" }}>Guardar</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
+  modalCard: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    maxHeight: "80%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  modalTitle: { fontSize: 20, fontWeight: "800" },
+  scrollContent: { maxHeight: 400 },
+  label: {
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 0.8,
+    marginTop: 14,
+    marginBottom: 8,
+  },
+  typeRow: { gap: 8, paddingBottom: 4 },
+  typeChip: {
+    paddingHorizontal: 14,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  typeText: { fontSize: 13, fontWeight: "700" },
+  input: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 48,
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  modalActions: { flexDirection: "row", gap: 12, marginTop: 20 },
+  btn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});

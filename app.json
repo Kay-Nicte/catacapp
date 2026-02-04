@@ -2,6 +2,7 @@
   "expo": {
     "name": "catacapp",
     "slug": "catacapp",
+    "scheme": "catacapp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,12 +11,13 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0E0F10"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "package": "com.catacapp.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -25,6 +27,23 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-web-browser",
+      "@react-native-community/datetimepicker",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-4638960090268476~4367146377"
+        }
+      ],
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "45cf0c4d-9325-40c3-b3e4-638adddf08a4"
+      }
+    },
+    "owner": "kay-nicte"
   }
 }
