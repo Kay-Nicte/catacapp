@@ -96,6 +96,9 @@ function SimpleLineChart({
           <Text style={[styles.emptyChartText, { color: t.textMuted }]}>
             Sin datos de peso registrados
           </Text>
+          <Text style={[styles.emptyChartHint, { color: t.textMuted }]}>
+            Añade registros de peso en la pestaña Registros
+          </Text>
         </View>
         <Text style={[styles.chartUnit, { color: t.textMuted }]}>{unit}</Text>
       </View>
@@ -395,6 +398,17 @@ export default function ChartsScreen() {
         </View>
       </View>
 
+      {petRecords.length === 0 ? (
+        <View style={styles.globalEmpty}>
+          <Icon name="bar-chart-outline" size={64} color={t.textMuted} />
+          <Text style={[styles.globalEmptyTitle, { color: t.text }]}>
+            Sin datos todavía
+          </Text>
+          <Text style={[styles.globalEmptyHint, { color: t.textMuted }]}>
+            Empieza a registrar comidas, sueño, peso y más en la pestaña Registros para ver tus estadísticas aquí.
+          </Text>
+        </View>
+      ) : (
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
@@ -462,6 +476,7 @@ export default function ChartsScreen() {
           unit="últimos 10 registros (kg)"
         />
       </ScrollView>
+      )}
     </View>
   );
 }
@@ -678,5 +693,27 @@ const styles = StyleSheet.create({
   emptyChartText: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  emptyChartHint: {
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  globalEmpty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 40,
+    gap: 12,
+  },
+  globalEmptyTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  globalEmptyHint: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 21,
   },
 });

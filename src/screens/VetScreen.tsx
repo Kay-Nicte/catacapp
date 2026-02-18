@@ -246,7 +246,8 @@ export default function VetScreen() {
             </Text>
             {!isMemorialSelected && (
               <Text style={[styles.emptyHint, { color: t.textMuted }]}>
-                Usa el botón + para añadir una
+                Registra las citas de {selectedPet?.name || "tu mascota"} con el veterinario.{"\n"}
+                Pulsa + para añadir la primera.
               </Text>
             )}
           </View>
