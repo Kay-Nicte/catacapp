@@ -2,7 +2,7 @@ import React, { createContext, useContext, useMemo, useState, useEffect, useCall
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "./AuthContext";
 
-export type PetType = "cat" | "dog";
+export type PetType = "cat" | "dog" | "rabbit" | "hamster" | "bird" | "iguana" | "snake";
 export type PetStatus = "active" | "memorial";
 
 export type Pet = {
@@ -17,6 +17,7 @@ export type Pet = {
 
 type PetUpsertInput = {
   id?: string;
+
   name: string;
   type: PetType;
   avatarKey: string;

@@ -16,43 +16,10 @@ import { useTheme } from "../theme/useTheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePet } from "../app/state/PetContext";
 import { useAds } from "../app/state/AdsContext";
+import { useVaccines, Vaccine } from "../app/state/VaccinesContext";
 import { Icon } from "../components/ui/Icon";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
 import { shadows } from "../theme/tokens";
-
-interface Vaccine {
-  id: string;
-  petId: string;
-  name: string;
-  date: string; // ISO string
-  nextDose?: string; // ISO string opcional
-  notes?: string;
-}
-
-// Datos de ejemplo (en una app real, esto estaría en un contexto)
-const initialVaccines: Vaccine[] = [
-  {
-    id: "v1",
-    petId: "1",
-    name: "Trivalente felina",
-    date: "2024-03-15T00:00:00.000Z",
-    nextDose: "2025-03-15T00:00:00.000Z",
-    notes: "Refuerzo anual",
-  },
-  {
-    id: "v2",
-    petId: "1",
-    name: "Rabia",
-    date: "2024-03-15T00:00:00.000Z",
-    nextDose: "2025-03-15T00:00:00.000Z",
-  },
-  {
-    id: "v3",
-    petId: "1",
-    name: "Leucemia felina",
-    date: "2023-06-20T00:00:00.000Z",
-  },
-];
 
 function formatDate(isoString: string): string {
   const date = new Date(isoString);
@@ -85,10 +52,10 @@ export default function VaccinesScreen() {
   const insets = useSafeAreaInsets();
   const { selectedPet, selectedPetId } = usePet();
   const { incrementActionCount } = useAds();
+  const { getVaccinesByPet, addVaccine, updateVaccine, deleteVaccine } = useVaccines();
 
   const isMemorialSelected = selectedPet?.status === "memorial";
 
-  const [vaccines, setVaccines] = useState<Vaccine[]>(initialVaccines);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVaccine, setEditingVaccine] = useState<Vaccine | null>(null);
 
@@ -103,8 +70,8 @@ export default function VaccinesScreen() {
   const [showNextDosePicker, setShowNextDosePicker] = useState(false);
 
   const petVaccines = useMemo(
-    () => vaccines.filter((v) => v.petId === selectedPetId),
-    [vaccines, selectedPetId]
+    () => getVaccinesByPet(selectedPetId),
+    [getVaccinesByPet, selectedPetId]
   );
 
   const upcomingVaccines = useMemo(
@@ -162,7 +129,7 @@ export default function VaccinesScreen() {
       {
         text: "Eliminar",
         style: "destructive",
-        onPress: () => setVaccines((prev) => prev.filter((v) => v.id !== id)),
+        onPress: () => deleteVaccine(id),
       },
     ]);
   };
@@ -175,8 +142,7 @@ export default function VaccinesScreen() {
       return;
     }
 
-    const vaccineData: Vaccine = {
-      id: editingVaccine?.id || `vac_${Date.now()}_${Math.random()}`,
+    const vaccineFields = {
       petId: selectedPetId,
       name,
       date: formDate.toISOString(),
@@ -185,9 +151,9 @@ export default function VaccinesScreen() {
     };
 
     if (editingVaccine) {
-      setVaccines((prev) => prev.map((v) => (v.id === editingVaccine.id ? vaccineData : v)));
+      updateVaccine(editingVaccine.id, vaccineFields);
     } else {
-      setVaccines((prev) => [vaccineData, ...prev]);
+      addVaccine(vaccineFields);
     }
 
     // Incrementar contador para intersticiales

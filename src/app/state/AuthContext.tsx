@@ -5,13 +5,17 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Google from "expo-auth-session/providers/google";
-import * as WebBrowser from "expo-web-browser";
-WebBrowser.maybeCompleteAuthSession();
+import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
+import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 
-// Este URI DEBE estar en Google Cloud Console > Web Client ID > Authorized redirect URIs
-const EXPO_REDIRECT_URI = "https://auth.expo.io/@kay-nicte/catacapp";
+// ⚠️ IMPORTANTE: Reemplaza esto con tu Web Client ID de Firebase Console
+// Lo encuentras en: Firebase Console → Configuración → Tus apps → Configuración del SDK
+const WEB_CLIENT_ID = "600979458540-31hmcfi0avmp2t63h7peo9jk7qoi960i.apps.googleusercontent.com";
+
+// Configurar Google Sign-In
+GoogleSignin.configure({
+  webClientId: WEB_CLIENT_ID,
+});
 
 export interface User {
   id: string;
@@ -21,15 +25,6 @@ export interface User {
   provider?: "email" | "google";
   avatarUrl?: string;
 }
-
-// Client IDs de Google Cloud Console
-// Obtén tus Client IDs en: https://console.cloud.google.com/apis/credentials
-const GOOGLE_WEB_CLIENT_ID =
-  "783077069369-8gl5bf0et5fuivaupbk325dqgubbkbbg.apps.googleusercontent.com";
-
-// Android Client ID - REEMPLAZAR con el ID generado en Google Cloud Console
-// Pasos: Credenciales → Crear ID de cliente OAuth → Android → usar package: com.catacapp.app y el SHA-1 del keystore
-const GOOGLE_ANDROID_CLIENT_ID = "783077069369-h3534monc36gj9pabhd04gq686pmit28.apps.googleusercontent.com";
 
 interface AuthContextType {
   user: User | null;
@@ -45,85 +40,44 @@ interface AuthContextType {
     name: string
   ) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
-  promptGoogleAsync: (() => Promise<any>) | null;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AUTH_STORAGE_KEY = "@catacapp_auth";
+function mapFirebaseUser(firebaseUser: FirebaseAuthTypes.User): User {
+  const providerData = firebaseUser.providerData[0];
+  const isGoogle = providerData?.providerId === "google.com";
 
-// Simulación de base de datos de usuarios (en producción usar Firebase/Supabase)
-const USERS_STORAGE_KEY = "@catacapp_users";
+  return {
+    id: firebaseUser.uid,
+    email: firebaseUser.email || "",
+    name: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "",
+    createdAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
+    provider: isGoogle ? "google" : "email",
+    avatarUrl: firebaseUser.photoURL || undefined,
+  };
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Google Auth usando el proxy de Expo
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: GOOGLE_WEB_CLIENT_ID,
-    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
-    redirectUri: EXPO_REDIRECT_URI,
-  });
-
-  // Debug: mostrar URL de autenticación
+  // Escuchar cambios de autenticación (persistencia automática)
   useEffect(() => {
-    if (request) {
-      console.log("=== GOOGLE OAUTH DEBUG ===");
-      console.log("Redirect URI:", EXPO_REDIRECT_URI);
-      console.log("Web Client ID:", GOOGLE_WEB_CLIENT_ID);
-      console.log("Request URL:", request.url);
-      console.log("==========================");
-    }
-  }, [request]);
-
-  // Cargar sesión al iniciar
-  useEffect(() => {
-    loadStoredAuth();
-  }, []);
-
-  // Manejar respuesta de Google OAuth
-  useEffect(() => {
-    console.log("Google OAuth response:", JSON.stringify(response, null, 2));
-    if (response?.type === "success") {
-      handleGoogleResponse(response.authentication?.accessToken);
-    } else if (response?.type === "error") {
-      console.error("Google OAuth error:", response.error);
-    }
-  }, [response]);
-
-  const loadStoredAuth = async () => {
-    try {
-      const stored = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
-      if (stored) {
-        const userData = JSON.parse(stored);
-        setUser(userData);
+    const unsubscribe = auth().onAuthStateChanged((firebaseUser) => {
+      if (firebaseUser) {
+        setUser(mapFirebaseUser(firebaseUser));
+      } else {
+        setUser(null);
       }
-    } catch (error) {
-      console.error("Error loading auth:", error);
-    } finally {
       setIsLoading(false);
-    }
-  };
+    });
 
-  const getStoredUsers = async (): Promise<
-    Record<string, { user: User; password: string }>
-  > => {
-    try {
-      const stored = await AsyncStorage.getItem(USERS_STORAGE_KEY);
-      return stored ? JSON.parse(stored) : {};
-    } catch {
-      return {};
-    }
-  };
-
-  const saveStoredUsers = async (
-    users: Record<string, { user: User; password: string }>
-  ) => {
-    await AsyncStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-  };
+    return unsubscribe;
+  }, []);
 
   const login = async (
     email: string,
@@ -132,32 +86,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const normalizedEmail = email.toLowerCase().trim();
 
-      // Validación básica
       if (!normalizedEmail || !password) {
         return { success: false, error: "Completa todos los campos" };
       }
 
-      const users = await getStoredUsers();
-      const userData = users[normalizedEmail];
-
-      if (!userData) {
-        return { success: false, error: "No existe una cuenta con este email" };
-      }
-
-      if (userData.password !== password) {
-        return { success: false, error: "Contraseña incorrecta" };
-      }
-
-      // Guardar sesión
-      await AsyncStorage.setItem(
-        AUTH_STORAGE_KEY,
-        JSON.stringify(userData.user)
-      );
-      setUser(userData.user);
-
+      await auth().signInWithEmailAndPassword(normalizedEmail, password);
       return { success: true };
-    } catch (error) {
-      return { success: false, error: "Error al iniciar sesión" };
+    } catch (error: any) {
+      let message = "Error al iniciar sesión";
+
+      switch (error.code) {
+        case "auth/invalid-email":
+          message = "Email no válido";
+          break;
+        case "auth/user-disabled":
+          message = "Esta cuenta ha sido deshabilitada";
+          break;
+        case "auth/user-not-found":
+          message = "No existe una cuenta con este email";
+          break;
+        case "auth/wrong-password":
+          message = "Contraseña incorrecta";
+          break;
+        case "auth/invalid-credential":
+          message = "Email o contraseña incorrectos";
+          break;
+        case "auth/too-many-requests":
+          message = "Demasiados intentos. Espera unos minutos";
+          break;
+      }
+
+      return { success: false, error: message };
     }
   };
 
@@ -170,7 +129,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const normalizedEmail = email.toLowerCase().trim();
       const trimmedName = name.trim();
 
-      // Validaciones
       if (!normalizedEmail || !password || !trimmedName) {
         return { success: false, error: "Completa todos los campos" };
       }
@@ -186,82 +144,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
       }
 
-      const users = await getStoredUsers();
+      // Crear usuario en Firebase
+      const credential = await auth().createUserWithEmailAndPassword(
+        normalizedEmail,
+        password
+      );
 
-      if (users[normalizedEmail]) {
-        return { success: false, error: "Ya existe una cuenta con este email" };
-      }
+      // Actualizar el nombre del perfil
+      await credential.user.updateProfile({
+        displayName: trimmedName,
+      });
 
-      // Crear usuario
-      const newUser: User = {
-        id: `user_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
-        email: normalizedEmail,
-        name: trimmedName,
-        createdAt: new Date().toISOString(),
-      };
-
-      // Guardar en "base de datos"
-      users[normalizedEmail] = { user: newUser, password };
-      await saveStoredUsers(users);
-
-      // Guardar sesión
-      await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(newUser));
-      setUser(newUser);
+      // Refrescar el usuario para obtener el nombre actualizado
+      await credential.user.reload();
 
       return { success: true };
-    } catch (error) {
-      return { success: false, error: "Error al crear la cuenta" };
-    }
-  };
+    } catch (error: any) {
+      let message = "Error al crear la cuenta";
 
-  const handleGoogleResponse = async (accessToken: string | undefined) => {
-    if (!accessToken) return;
-
-    try {
-      // Obtener información del usuario de Google
-      const userInfoResponse = await fetch(
-        "https://www.googleapis.com/userinfo/v2/me",
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
-      const googleUser = await userInfoResponse.json();
-
-      const normalizedEmail = googleUser.email.toLowerCase().trim();
-      const users = await getStoredUsers();
-
-      let existingUser = users[normalizedEmail]?.user;
-
-      if (existingUser) {
-        // Usuario existente - actualizar provider si es necesario
-        existingUser = {
-          ...existingUser,
-          provider: "google",
-          avatarUrl: googleUser.picture,
-        };
-        users[normalizedEmail].user = existingUser;
-        await saveStoredUsers(users);
-        await AsyncStorage.setItem(
-          AUTH_STORAGE_KEY,
-          JSON.stringify(existingUser)
-        );
-        setUser(existingUser);
-      } else {
-        // Crear nuevo usuario con Google
-        const newUser: User = {
-          id: `google_${googleUser.id}`,
-          email: normalizedEmail,
-          name: googleUser.name || googleUser.email.split("@")[0],
-          createdAt: new Date().toISOString(),
-          provider: "google",
-          avatarUrl: googleUser.picture,
-        };
-
-        users[normalizedEmail] = { user: newUser, password: "" };
-        await saveStoredUsers(users);
-        await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(newUser));
-        setUser(newUser);
+      switch (error.code) {
+        case "auth/email-already-in-use":
+          message = "Ya existe una cuenta con este email";
+          break;
+        case "auth/invalid-email":
+          message = "Email no válido";
+          break;
+        case "auth/weak-password":
+          message = "La contraseña es demasiado débil";
+          break;
       }
-    } catch (error) {
-      console.error("Error processing Google login:", error);
+
+      return { success: false, error: message };
     }
   };
 
@@ -270,52 +183,117 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error?: string;
   }> => {
     try {
-      if (!request) {
-        return {
-          success: false,
-          error: "Google Sign-In no está configurado. Verifica el Client ID.",
-        };
+      // Verificar que Google Play Services está disponible
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+
+      // Iniciar sesión con Google
+      const signInResult = await GoogleSignin.signIn();
+
+      // Obtener el token de ID
+      const idToken = signInResult.data?.idToken;
+
+      if (!idToken) {
+        return { success: false, error: "No se pudo obtener el token de Google" };
       }
 
-      const result = await promptAsync();
+      // Crear credencial de Firebase con el token
+      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
 
-      if (result?.type === "success") {
-        return { success: true };
-      } else if (result?.type === "cancel") {
-        return { success: false, error: "Inicio de sesión cancelado" };
-      } else {
-        return { success: false, error: "Error al iniciar sesión con Google" };
+      // Iniciar sesión en Firebase
+      await auth().signInWithCredential(googleCredential);
+
+      return { success: true };
+    } catch (error: any) {
+      let message = "Error al iniciar sesión con Google";
+
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        message = "Inicio de sesión cancelado";
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        message = "Inicio de sesión en progreso";
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        message = "Google Play Services no disponible";
       }
-    } catch (error) {
-      return { success: false, error: "Error al conectar con Google" };
+
+      console.error("Google Sign-In error:", error);
+      return { success: false, error: message };
     }
   };
 
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
-      setUser(null);
+      // Si estaba logueado con Google, desconectar también de Google
+      const currentUser = auth().currentUser;
+      if (currentUser) {
+        const isGoogleUser = currentUser.providerData.some(
+          (p) => p.providerId === "google.com"
+        );
+        if (isGoogleUser) {
+          await GoogleSignin.signOut();
+        }
+      }
+
+      await auth().signOut();
     } catch (error) {
       console.error("Error logging out:", error);
     }
   };
 
   const updateProfile = async (updates: Partial<User>) => {
-    if (!user) return;
+    const currentUser = auth().currentUser;
+    if (!currentUser) return;
 
-    const updatedUser = { ...user, ...updates };
+    try {
+      if (updates.name) {
+        await currentUser.updateProfile({
+          displayName: updates.name,
+        });
+      }
 
-    // Actualizar en storage
-    await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
+      if (updates.avatarUrl) {
+        await currentUser.updateProfile({
+          photoURL: updates.avatarUrl,
+        });
+      }
 
-    // Actualizar en "base de datos"
-    const users = await getStoredUsers();
-    if (users[user.email]) {
-      users[user.email].user = updatedUser;
-      await saveStoredUsers(users);
+      // Refrescar para obtener datos actualizados
+      await currentUser.reload();
+
+      // Actualizar estado local
+      const refreshedUser = auth().currentUser;
+      if (refreshedUser) {
+        setUser(mapFirebaseUser(refreshedUser));
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
     }
+  };
 
-    setUser(updatedUser);
+  const resetPassword = async (
+    email: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const normalizedEmail = email.toLowerCase().trim();
+
+      if (!normalizedEmail) {
+        return { success: false, error: "Ingresa tu email" };
+      }
+
+      await auth().sendPasswordResetEmail(normalizedEmail);
+      return { success: true };
+    } catch (error: any) {
+      let message = "Error al enviar el correo";
+
+      switch (error.code) {
+        case "auth/invalid-email":
+          message = "Email no válido";
+          break;
+        case "auth/user-not-found":
+          message = "No existe una cuenta con este email";
+          break;
+      }
+
+      return { success: false, error: message };
+    }
   };
 
   return (
@@ -327,9 +305,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         loginWithGoogle,
-        promptGoogleAsync: request ? promptAsync : null,
         logout,
         updateProfile,
+        resetPassword,
       }}
     >
       {children}

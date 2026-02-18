@@ -23,6 +23,7 @@ import AppStack from "./src/app/navigation/AppStack";
 import AuthStack from "./src/app/navigation/AuthStack";
 import { RecordsProvider } from "./src/app/state/RecordsContext";
 import { VetProvider } from "./src/app/state/VetContext";
+import { VaccinesProvider } from "./src/app/state/VaccinesContext";
 import { NotificationProvider } from "./src/app/state/NotificationContext";
 import { AdsProvider } from "./src/app/state/AdsContext";
 
@@ -71,7 +72,9 @@ function Navigation() {
               <PetProvider>
                 <RecordsProvider>
                   <VetProvider>
-                    <AppStack />
+                    <VaccinesProvider>
+                      <AppStack />
+                    </VaccinesProvider>
                   </VetProvider>
                 </RecordsProvider>
               </PetProvider>

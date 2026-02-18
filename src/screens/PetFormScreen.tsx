@@ -15,7 +15,7 @@ import { useTheme } from "../theme/useTheme";
 import { usePet } from "../app/state/PetContext";
 import { usePremium, FREE_LIMITS } from "../app/state/PremiumContext";
 import PetAvatar from "../components/PetAvatar";
-import { premiumAvatars } from "../assets/avatars";
+import { premiumAvatars, premiumPetTypes } from "../assets/avatars";
 import { Icon } from "../components/ui/Icon";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import type { RouteProp } from "@react-navigation/native";
@@ -48,9 +48,29 @@ export default function PetFormScreen() {
     () => ["dog_yellow_01", "dog_black_01", "dog_white_01", "dog_brown_01", "dog_husky", "dog_shibainu"],
     []
   );
+  const avatarOptionsRabbit = useMemo(
+    () => ["rabbit_white", "rabbit_brown", "rabbit_gray", "rabbit_brown_kawaii"],
+    []
+  );
+  const avatarOptionsHamster = useMemo(
+    () => ["hamster_golden", "hamster_white", "hamster_gray", "hamster_golden_kawaii"],
+    []
+  );
+  const avatarOptionsBird = useMemo(
+    () => ["bird_canary", "bird_parrot", "bird_cockatiel"],
+    []
+  );
+  const avatarOptionsIguana = useMemo(
+    () => ["iguana_green", "iguana_blue"],
+    []
+  );
+  const avatarOptionsSnake = useMemo(
+    () => ["snake_python", "snake_corn"],
+    []
+  );
 
   const [name, setName] = useState(pet?.name ?? "");
-  const [type, setType] = useState<"cat" | "dog">(pet?.type ?? "cat");
+  const [type, setType] = useState<"cat" | "dog" | "rabbit" | "hamster" | "bird" | "iguana" | "snake">(pet?.type ?? "cat");
   const [avatarKey, setAvatarKey] = useState(pet?.avatarKey ?? "cat_gray_01");
   const [birthDate, setBirthDate] = useState<Date | null>(() => {
     if (pet?.birthDate) {
@@ -74,7 +94,18 @@ export default function PetFormScreen() {
     }
   };
 
-  const options = type === "cat" ? avatarOptionsCat : avatarOptionsDog;
+  const options = useMemo(() => {
+    switch (type) {
+      case "cat": return avatarOptionsCat;
+      case "dog": return avatarOptionsDog;
+      case "rabbit": return avatarOptionsRabbit;
+      case "hamster": return avatarOptionsHamster;
+      case "bird": return avatarOptionsBird;
+      case "iguana": return avatarOptionsIguana;
+      case "snake": return avatarOptionsSnake;
+      default: return avatarOptionsCat;
+    }
+  }, [type, avatarOptionsCat, avatarOptionsDog, avatarOptionsRabbit, avatarOptionsHamster, avatarOptionsBird, avatarOptionsIguana, avatarOptionsSnake]);
 
   function save() {
     if (readOnly) return;
@@ -244,46 +275,57 @@ export default function PetFormScreen() {
 
         {/* Tipo */}
         <Text style={[styles.label, { color: t.textMuted }]}>Tipo</Text>
-        <View style={styles.row}>
-          <Pressable
-            disabled={readOnly}
-            onPress={() => {
-              setType("cat");
-              if (!avatarKey.startsWith("cat_")) setAvatarKey("cat_gray_01");
-            }}
-            style={[
-              styles.chip,
-              {
-                backgroundColor: type === "cat" ? t.accentSoft : t.card,
-                borderColor: type === "cat" ? "transparent" : t.border,
-                opacity: readOnly ? 0.5 : 1,
-              },
-            ]}
-          >
-            <Text style={{ color: type === "cat" ? t.accent : t.textMuted, fontWeight: "800" }}>
-              Gato
-            </Text>
-          </Pressable>
-
-          <Pressable
-            disabled={readOnly}
-            onPress={() => {
-              setType("dog");
-              if (!avatarKey.startsWith("dog_")) setAvatarKey("dog_yellow_01");
-            }}
-            style={[
-              styles.chip,
-              {
-                backgroundColor: type === "dog" ? t.accentSoft : t.card,
-                borderColor: type === "dog" ? "transparent" : t.border,
-                opacity: readOnly ? 0.5 : 1,
-              },
-            ]}
-          >
-            <Text style={{ color: type === "dog" ? t.accent : t.textMuted, fontWeight: "800" }}>
-              Perro
-            </Text>
-          </Pressable>
+        <View style={styles.typeGrid}>
+          {[
+            { key: "cat", label: "Gato", defaultAvatar: "cat_gray_01" },
+            { key: "dog", label: "Perro", defaultAvatar: "dog_yellow_01" },
+            { key: "rabbit", label: "Conejo", defaultAvatar: "rabbit_white" },
+            { key: "hamster", label: "Hamster", defaultAvatar: "hamster_golden" },
+            { key: "bird", label: "Pájaro", defaultAvatar: "bird_canary" },
+            { key: "iguana", label: "Iguana", defaultAvatar: "iguana_green" },
+            { key: "snake", label: "Serpiente", defaultAvatar: "snake_python" },
+          ].map((item) => {
+            const isSelected = type === item.key;
+            const isTypeLocked = premiumPetTypes.has(item.key) && !isPremium;
+            return (
+              <Pressable
+                key={item.key}
+                disabled={readOnly}
+                onPress={() => {
+                  if (isTypeLocked) {
+                    Alert.alert(
+                      "Tipo Premium",
+                      "Este tipo de mascota es exclusivo para usuarios Premium.",
+                      [
+                        { text: "Cancelar", style: "cancel" },
+                        { text: "Ver Premium", onPress: () => (nav as any).navigate("Premium") },
+                      ]
+                    );
+                    return;
+                  }
+                  setType(item.key as typeof type);
+                  if (!avatarKey.startsWith(`${item.key}_`)) setAvatarKey(item.defaultAvatar);
+                }}
+                style={[
+                  styles.typeChip,
+                  {
+                    backgroundColor: isSelected ? t.accentSoft : t.card,
+                    borderColor: isSelected ? "transparent" : t.border,
+                    opacity: readOnly ? 0.5 : isTypeLocked ? 0.55 : 1,
+                  },
+                ]}
+              >
+                <Text style={{ color: isSelected ? t.accent : t.textMuted, fontWeight: "800", fontSize: 12 }}>
+                  {item.label}
+                </Text>
+                {isTypeLocked && (
+                  <View style={[styles.typeLock, { backgroundColor: t.accent }]}>
+                    <Icon name="lock-closed" size={8} color="#fff" />
+                  </View>
+                )}
+              </Pressable>
+            );
+          })}
         </View>
 
         {/* Avatar */}
@@ -453,6 +495,31 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 14,
     borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  typeGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 4
+  },
+  typeChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  typeLock: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
   },
