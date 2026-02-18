@@ -5,6 +5,7 @@ import {
   StyleSheet,
   FlatList,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Icon } from "../components/ui/Icon";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
@@ -25,7 +26,7 @@ export default function VetScreen() {
   const insets = useSafeAreaInsets();
 
   const { selectedPet, selectedPetId } = usePet();
-  const { getVisitsByPet, deleteVisit, updateVisit, addVisit, markAsCompleted } = useVet();
+  const { getVisitsByPet, deleteVisit, updateVisit, addVisit, markAsCompleted, isLoading } = useVet();
   const { incrementActionCount } = useAds();
 
   const isMemorialSelected = selectedPet?.status === "memorial";
@@ -171,6 +172,14 @@ export default function VetScreen() {
     </AnimatedPressable>
     );
   };
+
+  if (isLoading) {
+    return (
+      <View style={[styles.screen, { backgroundColor: t.bg, paddingTop: insets.top + 6, justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color={t.accent} />
+      </View>
+    );
+  }
 
   return (
     <View

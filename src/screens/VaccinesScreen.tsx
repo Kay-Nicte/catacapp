@@ -10,6 +10,7 @@ import {
   ScrollView,
   Alert,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useTheme } from "../theme/useTheme";
@@ -52,7 +53,7 @@ export default function VaccinesScreen() {
   const insets = useSafeAreaInsets();
   const { selectedPet, selectedPetId } = usePet();
   const { incrementActionCount } = useAds();
-  const { getVaccinesByPet, addVaccine, updateVaccine, deleteVaccine } = useVaccines();
+  const { getVaccinesByPet, addVaccine, updateVaccine, deleteVaccine, isLoading } = useVaccines();
 
   const isMemorialSelected = selectedPet?.status === "memorial";
 
@@ -162,6 +163,14 @@ export default function VaccinesScreen() {
     setModalOpen(false);
     resetForm();
   };
+
+  if (isLoading) {
+    return (
+      <View style={[styles.screen, { backgroundColor: t.bg, paddingTop: insets.top + 6, justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color={t.accent} />
+      </View>
+    );
+  }
 
   return (
     <View
