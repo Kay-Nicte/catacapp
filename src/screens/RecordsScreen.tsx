@@ -9,6 +9,7 @@ import {
   FlatList,
   Alert,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { Icon } from "../components/ui/Icon";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
@@ -53,7 +54,7 @@ export default function RecordsScreen() {
   const insets = useSafeAreaInsets();
 
   const { selectedPet, selectedPetId } = usePet();
-  const { getRecordsByDate, addRecord, deleteRecord, updateRecord } = useRecords();
+  const { getRecordsByDate, addRecord, deleteRecord, updateRecord, isLoading } = useRecords();
   const { incrementActionCount } = useAds();
 
   const isMemorialSelected = selectedPet?.status === "memorial";
@@ -177,6 +178,14 @@ export default function RecordsScreen() {
 
     return counts;
   }, [todayRecords]);
+
+  if (isLoading) {
+    return (
+      <View style={[styles.screen, { backgroundColor: t.bg, paddingTop: insets.top + 6, justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color={t.accent} />
+      </View>
+    );
+  }
 
   return (
     <View

@@ -62,5 +62,11 @@ export const premiumAvatars = new Set([
   "snake_corn_kawaii",
 ]);
 
-/** Tipos de mascota que son exclusivos Premium (vacío = todos gratis) */
-export const premiumPetTypes = new Set<string>([]);
+/** Tipos de mascota que son exclusivos Premium */
+export const premiumPetTypes = new Set<string>([
+  "rabbit",
+  "hamster",
+  "bird",
+  "iguana",
+  "snake",
+]);

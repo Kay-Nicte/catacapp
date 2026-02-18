@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import Constants from "expo-constants";
 import {
   View,
   Text,
@@ -8,6 +9,7 @@ import {
   Switch,
   Alert,
   Linking,
+  Modal,
 } from "react-native";
 import * as Notifications from "expo-notifications";
 import { File as FSFile, Paths } from "expo-file-system";
@@ -23,6 +25,8 @@ import { useAds } from "../app/state/AdsContext";
 import { usePet } from "../app/state/PetContext";
 import { useRecords } from "../app/state/RecordsContext";
 import { useVet } from "../app/state/VetContext";
+import { useVaccines } from "../app/state/VaccinesContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { Icon } from "../components/ui/Icon";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
@@ -87,11 +91,13 @@ export default function SettingsScreen() {
   const navigation = useNavigation();
   const { user, logout } = useAuth();
   const { isPremium, cancelSubscription, status: premiumStatus } = usePremium();
-  const { settings: notificationSettings, updateSettings, hasPermission, requestPermission, scheduleRoutineReminder, cancelRoutineReminder } = useNotifications();
+  const { settings: notificationSettings, updateSettings, hasPermission, requestPermission, scheduleRoutineReminder, cancelRoutineReminder, cancelAllNotifications } = useNotifications();
   const { showInterstitial, showAds } = useAds();
   const { pets } = usePet();
   const { records, routines } = useRecords();
   const { visits } = useVet();
+  const { vaccines } = useVaccines();
+  const [privacyVisible, setPrivacyVisible] = useState(false);
 
   const handleToggleNotifications = async (value: boolean) => {
     if (value && !hasPermission) {
@@ -273,14 +279,42 @@ export default function SettingsScreen() {
   const handleClearData = () => {
     Alert.alert(
       "Borrar todos los datos",
-      "¿Estás seguro? Esta acción eliminará permanentemente todos los datos de la aplicación. Esta acción no se puede deshacer.",
+      "¿Estás seguro? Esta acción eliminará permanentemente todas tus mascotas, registros, vacunas, citas y configuración. No se puede deshacer.",
       [
         { text: "Cancelar", style: "cancel" },
         {
           text: "Borrar todo",
           style: "destructive",
-          onPress: () => {
-            Alert.alert("Datos borrados", "Todos los datos han sido eliminados. (Simulado)");
+          onPress: async () => {
+            try {
+              const userId = user?.id;
+              if (!userId) return;
+
+              // Cancelar todas las notificaciones programadas
+              await cancelAllNotifications();
+
+              // Borrar todas las keys del usuario en AsyncStorage
+              const keys = [
+                `@catacapp_pets_${userId}`,
+                `@catacapp_records_${userId}`,
+                `@catacapp_routines_${userId}`,
+                `@catacapp_routine_status_${userId}`,
+                `@catacapp_vet_visits_${userId}`,
+                `@catacapp_vaccines_${userId}`,
+                `@catacapp_premium_${userId}`,
+              ];
+              await AsyncStorage.multiRemove(keys);
+
+              // Logout para reiniciar todos los contextos
+              Alert.alert(
+                "Datos borrados",
+                "Todos los datos han sido eliminados. Se cerrará la sesión.",
+                [{ text: "OK", onPress: () => logout() }]
+              );
+            } catch (error) {
+              console.error("Error clearing data:", error);
+              Alert.alert("Error", "No se pudieron borrar los datos.");
+            }
           },
         },
       ]
@@ -333,11 +367,7 @@ export default function SettingsScreen() {
   };
 
   const handlePrivacyPolicy = () => {
-    Alert.alert(
-      "Política de privacidad",
-      "Tus datos se almacenan localmente en tu dispositivo y en la nube si inicias sesión. No compartimos información con terceros.",
-      [{ text: "Entendido" }]
-    );
+    setPrivacyVisible(true);
   };
 
   // TEST: Enviar notificación de prueba inmediata
@@ -653,9 +683,80 @@ export default function SettingsScreen() {
 
         {/* Versión */}
         <Text style={[styles.versionText, { color: t.textMuted }]}>
-          CatacApp v1.0.0
+          CatacApp v{Constants.expoConfig?.version ?? "1.0.0"}
         </Text>
       </ScrollView>
+
+      {/* Modal de Política de Privacidad */}
+      <Modal
+        visible={privacyVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPrivacyVisible(false)}
+      >
+        <Pressable style={styles.privacyBackdrop} onPress={() => setPrivacyVisible(false)} />
+        <View
+          style={[
+            styles.privacyCard,
+            { backgroundColor: t.card, borderColor: t.border, paddingBottom: insets.bottom + 14 },
+          ]}
+        >
+          <View style={styles.privacyHeader}>
+            <Text style={[styles.privacyTitle, { color: t.text }]}>Política de privacidad</Text>
+            <AnimatedPressable onPress={() => setPrivacyVisible(false)} hitSlop={10}>
+              <Icon name="close" size={24} color={t.textMuted} />
+            </AnimatedPressable>
+          </View>
+
+          <ScrollView style={styles.privacyScroll} showsVerticalScrollIndicator={false}>
+            <Text style={[styles.privacyDate, { color: t.textMuted }]}>
+              Última actualización: 18 de febrero de 2026
+            </Text>
+
+            <Text style={[styles.privacySectionTitle, { color: t.text }]}>
+              1. Datos que recopilamos
+            </Text>
+            <Text style={[styles.privacyBody, { color: t.textMuted }]}>
+              CatacApp recopila únicamente la información que proporcionas voluntariamente: nombre de usuario, datos de tus mascotas (nombre, tipo, fecha de nacimiento, avatar), registros de salud (comidas, deposiciones, sueño, peso, notas), vacunas y citas veterinarias.
+            </Text>
+
+            <Text style={[styles.privacySectionTitle, { color: t.text }]}>
+              2. Almacenamiento local
+            </Text>
+            <Text style={[styles.privacyBody, { color: t.textMuted }]}>
+              Todos tus datos se almacenan localmente en tu dispositivo mediante AsyncStorage. No se envían a servidores externos ni se sincronizan con la nube. Si desinstalas la aplicación, tus datos se eliminarán permanentemente.
+            </Text>
+
+            <Text style={[styles.privacySectionTitle, { color: t.text }]}>
+              3. Terceros
+            </Text>
+            <Text style={[styles.privacyBody, { color: t.textMuted }]}>
+              No compartimos, vendemos ni transferimos tu información personal a terceros. La app utiliza Google AdMob para mostrar anuncios a usuarios gratuitos, el cual puede recopilar identificadores publicitarios anónimos conforme a su propia política de privacidad.
+            </Text>
+
+            <Text style={[styles.privacySectionTitle, { color: t.text }]}>
+              4. Notificaciones
+            </Text>
+            <Text style={[styles.privacyBody, { color: t.textMuted }]}>
+              Si otorgas permiso, CatacApp programa notificaciones locales para recordatorios de vacunas, citas veterinarias y rutinas. Estas notificaciones se procesan en tu dispositivo y no requieren conexión a internet.
+            </Text>
+
+            <Text style={[styles.privacySectionTitle, { color: t.text }]}>
+              5. Tus derechos
+            </Text>
+            <Text style={[styles.privacyBody, { color: t.textMuted }]}>
+              Puedes eliminar todos tus datos en cualquier momento desde Ajustes {">"} Zona de Peligro {">"} Borrar todos los datos. También puedes eliminar mascotas individuales y sus registros asociados.
+            </Text>
+
+            <Text style={[styles.privacySectionTitle, { color: t.text }]}>
+              6. Contacto
+            </Text>
+            <Text style={[styles.privacyBody, { color: t.textMuted }]}>
+              Si tienes preguntas sobre esta política, escríbenos a soporte@catacapp.com.
+            </Text>
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -838,4 +939,28 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 10,
   },
+
+  privacyBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
+  privacyCard: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    maxHeight: "85%",
+  },
+  privacyHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  privacyTitle: { fontSize: 20, fontWeight: "800" },
+  privacyScroll: { maxHeight: 500 },
+  privacyDate: { fontSize: 12, fontWeight: "600", marginBottom: 16 },
+  privacySectionTitle: { fontSize: 15, fontWeight: "800", marginTop: 16, marginBottom: 6 },
+  privacyBody: { fontSize: 14, fontWeight: "500", lineHeight: 21 },
 });

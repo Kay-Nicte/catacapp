@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, Pressable, FlatList, StyleSheet } from "react-native";
+import { View, Text, Pressable, FlatList, StyleSheet, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/useTheme";
 import { shadows } from "../theme/tokens";
@@ -81,8 +81,8 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
 
-  const { pets, selectedPetId, setSelectedPetId, selectedPet } = usePet();
-  const { getRecordsByDate, getTodayRoutines, confirmRoutine, skipRoutine } = useRecords();
+  const { pets, selectedPetId, setSelectedPetId, selectedPet, isLoading: isPetsLoading } = usePet();
+  const { getRecordsByDate, getRecordsByPet, getTodayRoutines, confirmRoutine, skipRoutine, isLoading: isRecordsLoading } = useRecords();
   
   const [routinesModalVisible, setRoutinesModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -94,6 +94,7 @@ export default function HomeScreen() {
     defaultValue?: string;
   } | null>(null);
   
+  const isLoading = isPetsLoading || isRecordsLoading;
   const isMemorialSelected = selectedPet?.status === "memorial";
   const todayRecords = getRecordsByDate(new Date(), selectedPetId);
   const todayRoutines = getTodayRoutines(selectedPetId);
@@ -112,6 +113,13 @@ export default function HomeScreen() {
       const match = r.value.match(/(\d+)/);
       return acc + (match ? parseInt(match[0]) : 0);
     }, 0);
+
+    // Último peso registrado (de todos los records, no solo hoy)
+    const allPetRecords = getRecordsByPet(selectedPetId);
+    const weightRecords = allPetRecords
+      .filter(r => r.type === "WEIGHT")
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const lastWeight = weightRecords.length > 0 ? weightRecords[0].value : null;
 
     return [
       {
@@ -137,8 +145,15 @@ export default function HomeScreen() {
         value: totalSleep > 0 ? `${totalSleep} horas` : "Sin registros",
         type: "SLEEP",
       },
+      {
+        id: "s4",
+        icon: getIcon("WEIGHT"),
+        name: prettyType("WEIGHT"),
+        value: lastWeight || "Sin registros",
+        type: "WEIGHT",
+      },
     ];
-  }, [todayRecords]);
+  }, [todayRecords, getRecordsByPet, selectedPetId]);
 
   const handleConfirmRoutine = (routineId: string, defaultValue?: string, routineTime?: string) => {
     if (isMemorialSelected) return;
@@ -328,6 +343,14 @@ export default function HomeScreen() {
     </>
   );
 
+  if (isLoading) {
+    return (
+      <View style={[styles.screen, { backgroundColor: t.bg, paddingTop: insets.top + 6, justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color={t.accent} />
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.screen, { backgroundColor: t.bg, paddingTop: insets.top + 6 }]}>
       {/* Header */}
@@ -358,55 +381,75 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Contenido con FlatList */}
-      <FlatList
-        style={styles.container}
-        contentContainerStyle={styles.contentContainer}
-        ListHeaderComponent={ListHeaderComponent}
-        data={summary}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
+      {pets.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <View style={[styles.emptyIcon, { backgroundColor: t.accentSoft }]}>
+            <Icon name="paw" size={48} color={t.accent} />
+          </View>
+          <Text style={[styles.emptyTitle, { color: t.text }]}>
+            Añade tu primera mascota
+          </Text>
+          <Text style={[styles.emptyDesc, { color: t.textMuted }]}>
+            Registra a tu compañero peludo para empezar a llevar su control de salud.
+          </Text>
           <AnimatedPressable
-            onPress={() => navigation.navigate("Registros")}
-            style={[
-              styles.summaryRow,
-              {
-                backgroundColor: t.card,
-                borderColor: t.border,
-                ...shadows.sm,
-              },
-            ]}
+            onPress={() => navigation.navigate("PetForm")}
+            style={[styles.emptyBtn, { backgroundColor: t.accent }]}
           >
-            <View style={styles.summaryRowLeft}>
-              <View style={[styles.iconCircle, { backgroundColor: t.accentSoft }]}>
-                <Icon name={item.icon} size={20} color={t.accent} />
-              </View>
-              <Text style={[styles.summaryName, { color: t.text }]}>{item.name}</Text>
-            </View>
-
-            <View style={styles.summaryRowRight}>
-              <Text style={[styles.summaryValue, { color: t.textMuted }]}>{item.value}</Text>
-              <Icon name="chevron-forward" size={18} color={t.textMuted} />
-            </View>
+            <Icon name="add" size={20} color="#fff" />
+            <Text style={styles.emptyBtnText}>Añadir mascota</Text>
           </AnimatedPressable>
-        )}
-        ItemSeparatorComponent={() => (
-          <View style={[styles.separator, { backgroundColor: t.border }]} />
-        )}
-        ListFooterComponent={
-          <>
-            {isMemorialSelected && (
-              <Text style={[styles.memorialHint, { color: t.textMuted }]}>
-                Esta mascota está en modo recuerdo (solo lectura).
-              </Text>
-            )}
+        </View>
+      ) : (
+        <FlatList
+          style={styles.container}
+          contentContainerStyle={styles.contentContainer}
+          ListHeaderComponent={ListHeaderComponent}
+          data={summary}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <AnimatedPressable
+              onPress={() => navigation.navigate("Registros")}
+              style={[
+                styles.summaryRow,
+                {
+                  backgroundColor: t.card,
+                  borderColor: t.border,
+                  ...shadows.sm,
+                },
+              ]}
+            >
+              <View style={styles.summaryRowLeft}>
+                <View style={[styles.iconCircle, { backgroundColor: t.accentSoft }]}>
+                  <Icon name={item.icon} size={20} color={t.accent} />
+                </View>
+                <Text style={[styles.summaryName, { color: t.text }]}>{item.name}</Text>
+              </View>
 
-            <Text style={[styles.tip, { color: t.textMuted }]}>
-              Tip: mantén pulsada una mascota para editarla.
-            </Text>
-          </>
-        }
-      />
+              <View style={styles.summaryRowRight}>
+                <Text style={[styles.summaryValue, { color: t.textMuted }]}>{item.value}</Text>
+                <Icon name="chevron-forward" size={18} color={t.textMuted} />
+              </View>
+            </AnimatedPressable>
+          )}
+          ItemSeparatorComponent={() => (
+            <View style={[styles.separator, { backgroundColor: t.border }]} />
+          )}
+          ListFooterComponent={
+            <>
+              {isMemorialSelected && (
+                <Text style={[styles.memorialHint, { color: t.textMuted }]}>
+                  Esta mascota está en modo recuerdo (solo lectura).
+                </Text>
+              )}
+
+              <Text style={[styles.tip, { color: t.textMuted }]}>
+                Tip: mantén pulsada una mascota para editarla.
+              </Text>
+            </>
+          }
+        />
+      )}
 
       {/* Modal de rutinas */}
       <RoutinesModal
@@ -589,4 +632,44 @@ const styles = StyleSheet.create({
 
   memorialHint: { marginTop: 10, fontSize: 12, fontWeight: "600" },
   tip: { marginTop: 10, fontSize: 12, fontWeight: "600" },
+
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 40,
+  },
+  emptyIcon: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
+  },
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    marginBottom: 10,
+  },
+  emptyDesc: {
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 28,
+  },
+  emptyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 24,
+    height: 50,
+    borderRadius: 25,
+  },
+  emptyBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "800",
+  },
 });
