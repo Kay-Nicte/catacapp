@@ -47,6 +47,7 @@ interface RecordsContextType {
   addRoutine: (routine: Omit<Routine, 'id'>) => void;
   deleteRoutine: (id: string) => void;
   updateRoutine: (id: string, updates: Partial<Routine>) => void;
+  deleteByPet: (petId: string) => void;
 }
 
 const RecordsContext = createContext<RecordsContextType | undefined>(undefined);
@@ -219,6 +220,11 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const deleteByPet = (petId: string) => {
+    setRecords(prev => prev.filter(r => r.petId !== petId));
+    setRoutines(prev => prev.filter(r => r.petId !== petId));
+  };
+
   return (
     <RecordsContext.Provider
       value={{
@@ -236,6 +242,7 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
         addRoutine,
         deleteRoutine,
         updateRoutine,
+        deleteByPet,
       }}
     >
       {children}

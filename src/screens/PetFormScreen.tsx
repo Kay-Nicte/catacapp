@@ -13,6 +13,9 @@ import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/dat
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/useTheme";
 import { usePet } from "../app/state/PetContext";
+import { useRecords } from "../app/state/RecordsContext";
+import { useVet } from "../app/state/VetContext";
+import { useVaccines } from "../app/state/VaccinesContext";
 import { usePremium, FREE_LIMITS } from "../app/state/PremiumContext";
 import PetAvatar from "../components/PetAvatar";
 import { premiumAvatars, premiumPetTypes } from "../assets/avatars";
@@ -32,6 +35,9 @@ export default function PetFormScreen() {
   const { pets, addPet, updatePet, markPetDeceased, reactivatePet, deletePet } =
     usePet();
   const { isPremium } = usePremium();
+  const { deleteByPet: deleteRecordsByPet } = useRecords();
+  const { deleteByPet: deleteVetByPet } = useVet();
+  const { deleteByPet: deleteVaccinesByPet } = useVaccines();
 
   const petId = route.params?.petId;
   const editing = Boolean(petId);
@@ -192,7 +198,10 @@ export default function PetFormScreen() {
         {
           text: "Eliminar",
           style: "destructive",
-          onPress: () => {
+          onPress: async () => {
+            await deleteVaccinesByPet(petId);
+            await deleteVetByPet(petId);
+            deleteRecordsByPet(petId);
             deletePet(petId);
             nav.goBack();
           },

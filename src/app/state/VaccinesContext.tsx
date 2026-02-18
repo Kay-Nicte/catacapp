@@ -21,6 +21,7 @@ interface VaccinesContextType {
   updateVaccine: (id: string, updates: Partial<Omit<Vaccine, 'id' | 'notificationId'>>) => Promise<void>;
   deleteVaccine: (id: string) => Promise<void>;
   getVaccinesByPet: (petId: string) => Vaccine[];
+  deleteByPet: (petId: string) => Promise<void>;
 }
 
 const VaccinesContext = createContext<VaccinesContextType | undefined>(undefined);
@@ -133,6 +134,16 @@ export function VaccinesProvider({ children }: { children: ReactNode }) {
     return vaccines.filter(v => v.petId === petId);
   };
 
+  const deleteByPet = async (petId: string) => {
+    const petVaccines = vaccines.filter(v => v.petId === petId);
+    for (const v of petVaccines) {
+      if (v.notificationId) {
+        await cancelNotification(v.notificationId);
+      }
+    }
+    setVaccines(prev => prev.filter(v => v.petId !== petId));
+  };
+
   return (
     <VaccinesContext.Provider
       value={{
@@ -142,6 +153,7 @@ export function VaccinesProvider({ children }: { children: ReactNode }) {
         updateVaccine,
         deleteVaccine,
         getVaccinesByPet,
+        deleteByPet,
       }}
     >
       {children}

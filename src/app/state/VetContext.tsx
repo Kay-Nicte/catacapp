@@ -23,6 +23,7 @@ interface VetContextType {
   updateVisit: (id: string, updates: Partial<Omit<VetVisit, 'id'>>) => void;
   getVisitsByPet: (petId: string) => { past: VetVisit[]; upcoming: VetVisit[] };
   markAsCompleted: (id: string) => void;
+  deleteByPet: (petId: string) => Promise<void>;
 }
 
 const VetContext = createContext<VetContextType | undefined>(undefined);
@@ -125,6 +126,16 @@ export function VetProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const deleteByPet = async (petId: string) => {
+    const petVisits = visits.filter(v => v.petId === petId);
+    for (const v of petVisits) {
+      if (v.notificationId) {
+        await cancelNotification(v.notificationId);
+      }
+    }
+    setVisits(prev => prev.filter(v => v.petId !== petId));
+  };
+
   return (
     <VetContext.Provider
       value={{
@@ -135,6 +146,7 @@ export function VetProvider({ children }: { children: ReactNode }) {
         updateVisit,
         getVisitsByPet,
         markAsCompleted,
+        deleteByPet,
       }}
     >
       {children}
