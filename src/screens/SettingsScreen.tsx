@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Switch,
   Alert,
   Linking,
+  Modal,
 } from "react-native";
 import * as Notifications from "expo-notifications";
 import { File as FSFile, Paths } from "expo-file-system";
@@ -92,6 +93,7 @@ export default function SettingsScreen() {
   const { pets } = usePet();
   const { records, routines } = useRecords();
   const { visits } = useVet();
+  const [privacyVisible, setPrivacyVisible] = useState(false);
 
   const handleToggleNotifications = async (value: boolean) => {
     if (value && !hasPermission) {
@@ -333,11 +335,7 @@ export default function SettingsScreen() {
   };
 
   const handlePrivacyPolicy = () => {
-    Alert.alert(
-      "Política de privacidad",
-      "Tus datos se almacenan localmente en tu dispositivo y en la nube si inicias sesión. No compartimos información con terceros.",
-      [{ text: "Entendido" }]
-    );
+    setPrivacyVisible(true);
   };
 
   // TEST: Enviar notificación de prueba inmediata
@@ -656,6 +654,77 @@ export default function SettingsScreen() {
           CatacApp v1.0.0
         </Text>
       </ScrollView>
+
+      {/* Modal de Política de Privacidad */}
+      <Modal
+        visible={privacyVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPrivacyVisible(false)}
+      >
+        <Pressable style={styles.privacyBackdrop} onPress={() => setPrivacyVisible(false)} />
+        <View
+          style={[
+            styles.privacyCard,
+            { backgroundColor: t.card, borderColor: t.border, paddingBottom: insets.bottom + 14 },
+          ]}
+        >
+          <View style={styles.privacyHeader}>
+            <Text style={[styles.privacyTitle, { color: t.text }]}>Política de privacidad</Text>
+            <AnimatedPressable onPress={() => setPrivacyVisible(false)} hitSlop={10}>
+              <Icon name="close" size={24} color={t.textMuted} />
+            </AnimatedPressable>
+          </View>
+
+          <ScrollView style={styles.privacyScroll} showsVerticalScrollIndicator={false}>
+            <Text style={[styles.privacyDate, { color: t.textMuted }]}>
+              Última actualización: 18 de febrero de 2026
+            </Text>
+
+            <Text style={[styles.privacySectionTitle, { color: t.text }]}>
+              1. Datos que recopilamos
+            </Text>
+            <Text style={[styles.privacyBody, { color: t.textMuted }]}>
+              CatacApp recopila únicamente la información que proporcionas voluntariamente: nombre de usuario, datos de tus mascotas (nombre, tipo, fecha de nacimiento, avatar), registros de salud (comidas, deposiciones, sueño, peso, notas), vacunas y citas veterinarias.
+            </Text>
+
+            <Text style={[styles.privacySectionTitle, { color: t.text }]}>
+              2. Almacenamiento local
+            </Text>
+            <Text style={[styles.privacyBody, { color: t.textMuted }]}>
+              Todos tus datos se almacenan localmente en tu dispositivo mediante AsyncStorage. No se envían a servidores externos ni se sincronizan con la nube. Si desinstalas la aplicación, tus datos se eliminarán permanentemente.
+            </Text>
+
+            <Text style={[styles.privacySectionTitle, { color: t.text }]}>
+              3. Terceros
+            </Text>
+            <Text style={[styles.privacyBody, { color: t.textMuted }]}>
+              No compartimos, vendemos ni transferimos tu información personal a terceros. La app utiliza Google AdMob para mostrar anuncios a usuarios gratuitos, el cual puede recopilar identificadores publicitarios anónimos conforme a su propia política de privacidad.
+            </Text>
+
+            <Text style={[styles.privacySectionTitle, { color: t.text }]}>
+              4. Notificaciones
+            </Text>
+            <Text style={[styles.privacyBody, { color: t.textMuted }]}>
+              Si otorgas permiso, CatacApp programa notificaciones locales para recordatorios de vacunas, citas veterinarias y rutinas. Estas notificaciones se procesan en tu dispositivo y no requieren conexión a internet.
+            </Text>
+
+            <Text style={[styles.privacySectionTitle, { color: t.text }]}>
+              5. Tus derechos
+            </Text>
+            <Text style={[styles.privacyBody, { color: t.textMuted }]}>
+              Puedes eliminar todos tus datos en cualquier momento desde Ajustes {">"} Zona de Peligro {">"} Borrar todos los datos. También puedes eliminar mascotas individuales y sus registros asociados.
+            </Text>
+
+            <Text style={[styles.privacySectionTitle, { color: t.text }]}>
+              6. Contacto
+            </Text>
+            <Text style={[styles.privacyBody, { color: t.textMuted }]}>
+              Si tienes preguntas sobre esta política, escríbenos a soporte@catacapp.com.
+            </Text>
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -838,4 +907,28 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 10,
   },
+
+  privacyBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
+  privacyCard: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    maxHeight: "85%",
+  },
+  privacyHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  privacyTitle: { fontSize: 20, fontWeight: "800" },
+  privacyScroll: { maxHeight: 500 },
+  privacyDate: { fontSize: 12, fontWeight: "600", marginBottom: 16 },
+  privacySectionTitle: { fontSize: 15, fontWeight: "800", marginTop: 16, marginBottom: 6 },
+  privacyBody: { fontSize: 14, fontWeight: "500", lineHeight: 21 },
 });
