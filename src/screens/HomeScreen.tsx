@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, Pressable, FlatList, StyleSheet } from "react-native";
+import { View, Text, Pressable, FlatList, StyleSheet, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/useTheme";
 import { shadows } from "../theme/tokens";
@@ -81,8 +81,8 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
 
-  const { pets, selectedPetId, setSelectedPetId, selectedPet } = usePet();
-  const { getRecordsByDate, getRecordsByPet, getTodayRoutines, confirmRoutine, skipRoutine } = useRecords();
+  const { pets, selectedPetId, setSelectedPetId, selectedPet, isLoading: isPetsLoading } = usePet();
+  const { getRecordsByDate, getRecordsByPet, getTodayRoutines, confirmRoutine, skipRoutine, isLoading: isRecordsLoading } = useRecords();
   
   const [routinesModalVisible, setRoutinesModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -94,6 +94,7 @@ export default function HomeScreen() {
     defaultValue?: string;
   } | null>(null);
   
+  const isLoading = isPetsLoading || isRecordsLoading;
   const isMemorialSelected = selectedPet?.status === "memorial";
   const todayRecords = getRecordsByDate(new Date(), selectedPetId);
   const todayRoutines = getTodayRoutines(selectedPetId);
@@ -341,6 +342,14 @@ export default function HomeScreen() {
       </Text>
     </>
   );
+
+  if (isLoading) {
+    return (
+      <View style={[styles.screen, { backgroundColor: t.bg, paddingTop: insets.top + 6, justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color={t.accent} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.screen, { backgroundColor: t.bg, paddingTop: insets.top + 6 }]}>
