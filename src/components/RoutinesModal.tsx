@@ -18,6 +18,7 @@ import { useRecords, RecordType, Routine } from "../app/state/RecordsContext";
 import { Icon } from "./ui/Icon";
 import { AnimatedPressable } from "./ui/AnimatedPressable";
 import { shadows } from "../theme/tokens";
+import { formatTime } from "../utils/format";
 
 interface RoutinesModalProps {
   visible: boolean;
@@ -64,10 +65,6 @@ export default function RoutinesModal({ visible, onClose, petId }: RoutinesModal
     setEditingId(null);
   };
 
-  const formatTimeDisplay = (date: Date): string => {
-    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-  };
-
   const onTimeChange = (event: DateTimePickerEvent, selectedTime?: Date) => {
     setShowTimePicker(Platform.OS === "ios");
     if (selectedTime) {
@@ -77,7 +74,7 @@ export default function RoutinesModal({ visible, onClose, petId }: RoutinesModal
 
   const handleSave = () => {
     const title = formTitle.trim();
-    const time = formatTimeDisplay(formTimeValue);
+    const time = formatTime(formTimeValue);
     const value = formValue.trim();
 
     if (!title) {
@@ -291,7 +288,7 @@ export default function RoutinesModal({ visible, onClose, petId }: RoutinesModal
             >
               <Icon name="time-outline" size={20} color={t.textMuted} />
               <Text style={[styles.timeText, { color: t.text }]}>
-                {formatTimeDisplay(formTimeValue)}
+                {formatTime(formTimeValue)}
               </Text>
             </Pressable>
             {showTimePicker && (
