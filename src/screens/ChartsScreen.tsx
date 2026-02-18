@@ -292,6 +292,23 @@ export default function ChartsScreen() {
     });
   }, [last7Days, petRecords]);
 
+  // Datos de sueño por día (horas totales)
+  const sleepData: DataPoint[] = useMemo(() => {
+    return last7Days.map((day) => {
+      const dayRecords = petRecords.filter(
+        (r) => r.type === 'SLEEP' && r.timestamp.split('T')[0] === day
+      );
+      const totalHours = dayRecords.reduce((acc, r) => {
+        const match = r.value.match(/(\d+(?:[.,]\d+)?)/);
+        return acc + (match ? parseFloat(match[1].replace(',', '.')) : 0);
+      }, 0);
+      return {
+        label: new Date(day).toLocaleDateString('es-ES', { weekday: 'short' }).slice(0, 2),
+        value: Math.round(totalHours * 10) / 10,
+      };
+    });
+  }, [last7Days, petRecords]);
+
   // Datos de evolución de peso (últimos 10 registros)
   const weightData: DataPoint[] = useMemo(() => {
     return petRecords
@@ -414,6 +431,13 @@ export default function ChartsScreen() {
           color="#4CAF50"
           title="Deposiciones"
           unit="registros por día"
+        />
+
+        <SimpleBarChart
+          data={sleepData}
+          color="#7C4DFF"
+          title="Horas de sueño"
+          unit="horas por día"
         />
 
         {/* Evolución de peso */}
