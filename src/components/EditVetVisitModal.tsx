@@ -8,6 +8,7 @@ import {
   TextInput,
   ScrollView,
   Platform,
+  Alert,
 } from "react-native";
 import { Icon } from "./ui/Icon";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
@@ -108,6 +109,7 @@ export default function EditVetVisitModal({
     const trimmedNotes = notes.trim();
 
     if (!trimmedVet || !trimmedReason) {
+      Alert.alert("Faltan datos", "Completa el veterinario y el motivo de la visita.");
       return;
     }
 
