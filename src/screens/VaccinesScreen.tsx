@@ -297,7 +297,8 @@ export default function VaccinesScreen() {
             </Text>
             {!isMemorialSelected && (
               <Text style={[styles.emptyHint, { color: t.textMuted }]}>
-                Usa el botón + para añadir una
+                Lleva un control de las vacunas de {selectedPet?.name || "tu mascota"}.{"\n"}
+                Pulsa + para registrar la primera.
               </Text>
             )}
           </View>
