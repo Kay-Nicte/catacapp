@@ -73,6 +73,149 @@ function SimpleBarChart({
   );
 }
 
+function SimpleLineChart({
+  data,
+  color,
+  title,
+  unit,
+}: {
+  data: DataPoint[];
+  color: string;
+  title: string;
+  unit: string;
+}) {
+  const t = useTheme();
+
+  if (data.length === 0) {
+    return (
+      <View style={[styles.chartCard, { backgroundColor: t.card, borderColor: t.border }, shadows.sm]}>
+        <Text style={[styles.chartTitle, { color: t.text }]}>{title}</Text>
+        <View style={styles.emptyChart}>
+          <Icon name="analytics" size={36} color={t.textMuted} />
+          <Text style={[styles.emptyChartText, { color: t.textMuted }]}>
+            Sin datos de peso registrados
+          </Text>
+        </View>
+        <Text style={[styles.chartUnit, { color: t.textMuted }]}>{unit}</Text>
+      </View>
+    );
+  }
+
+  const values = data.map(d => d.value);
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+  const range = maxValue - minValue || 1;
+  const padding = range * 0.1;
+  const yMin = minValue - padding;
+  const yMax = maxValue + padding;
+  const yRange = yMax - yMin;
+
+  const LINE_CHART_HEIGHT = CHART_HEIGHT - 40;
+  const LINE_CHART_WIDTH = CHART_WIDTH - 32;
+  const pointSpacing = data.length > 1 ? LINE_CHART_WIDTH / (data.length - 1) : 0;
+
+  const points = data.map((d, i) => ({
+    x: data.length === 1 ? LINE_CHART_WIDTH / 2 : i * pointSpacing,
+    y: LINE_CHART_HEIGHT - ((d.value - yMin) / yRange) * LINE_CHART_HEIGHT,
+  }));
+
+  // Build SVG-like path using line segments
+  const segments: { x1: number; y1: number; x2: number; y2: number }[] = [];
+  for (let i = 0; i < points.length - 1; i++) {
+    segments.push({
+      x1: points[i].x,
+      y1: points[i].y,
+      x2: points[i + 1].x,
+      y2: points[i + 1].y,
+    });
+  }
+
+  return (
+    <View style={[styles.chartCard, { backgroundColor: t.card, borderColor: t.border }, shadows.sm]}>
+      <Text style={[styles.chartTitle, { color: t.text }]}>{title}</Text>
+
+      {/* Y-axis labels */}
+      <View style={styles.lineChartWrapper}>
+        <View style={styles.yAxisLabels}>
+          <Text style={[styles.yLabel, { color: t.textMuted }]}>{maxValue.toFixed(1)}</Text>
+          <Text style={[styles.yLabel, { color: t.textMuted }]}>
+            {((minValue + maxValue) / 2).toFixed(1)}
+          </Text>
+          <Text style={[styles.yLabel, { color: t.textMuted }]}>{minValue.toFixed(1)}</Text>
+        </View>
+
+        <View style={[styles.lineChartContainer, { height: LINE_CHART_HEIGHT }]}>
+          {/* Grid lines */}
+          {[0, 0.5, 1].map((frac, i) => (
+            <View
+              key={i}
+              style={[
+                styles.gridLine,
+                { top: frac * LINE_CHART_HEIGHT, backgroundColor: t.border },
+              ]}
+            />
+          ))}
+
+          {/* Line segments */}
+          {segments.map((seg, i) => {
+            const dx = seg.x2 - seg.x1;
+            const dy = seg.y2 - seg.y1;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+            return (
+              <View
+                key={`line-${i}`}
+                style={{
+                  position: 'absolute',
+                  left: seg.x1,
+                  top: seg.y1,
+                  width: length,
+                  height: 2.5,
+                  backgroundColor: color,
+                  borderRadius: 1.25,
+                  transform: [{ rotate: `${angle}deg` }],
+                  transformOrigin: 'left center',
+                }}
+              />
+            );
+          })}
+
+          {/* Data points */}
+          {points.map((p, i) => (
+            <View
+              key={`point-${i}`}
+              style={[styles.dataPoint, {
+                left: p.x - 5,
+                top: p.y - 5,
+                backgroundColor: color,
+                borderColor: t.card,
+              }]}
+            />
+          ))}
+        </View>
+      </View>
+
+      {/* X-axis labels */}
+      <View style={[styles.xAxisLabels, { marginLeft: 36 }]}>
+        {data.map((d, i) => (
+          <Text
+            key={i}
+            style={[
+              styles.xLabel,
+              { color: t.textMuted },
+              data.length === 1 && { textAlign: 'center', flex: 1 },
+            ]}
+          >
+            {d.label}
+          </Text>
+        ))}
+      </View>
+
+      <Text style={[styles.chartUnit, { color: t.textMuted }]}>{unit}</Text>
+    </View>
+  );
+}
+
 function StatCard({
   icon,
   title,
@@ -148,6 +291,23 @@ export default function ChartsScreen() {
       };
     });
   }, [last7Days, petRecords]);
+
+  // Datos de evolución de peso (últimos 10 registros)
+  const weightData: DataPoint[] = useMemo(() => {
+    return petRecords
+      .filter((r) => r.type === 'WEIGHT')
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+      .slice(-10)
+      .map((r) => {
+        const num = parseFloat(r.value.replace(/[^0-9.,]/g, '').replace(',', '.'));
+        const date = new Date(r.timestamp);
+        return {
+          label: `${date.getDate()}/${date.getMonth() + 1}`,
+          value: isNaN(num) ? 0 : num,
+        };
+      })
+      .filter((d) => d.value > 0);
+  }, [petRecords]);
 
   // Estadísticas generales
   const stats = useMemo(() => {
@@ -256,9 +416,15 @@ export default function ChartsScreen() {
           unit="registros por día"
         />
 
-        <Text style={[styles.comingSoon, { color: t.textMuted }]}>
-          Más gráficos y análisis próximamente: evolución de peso, patrones de sueño, y más.
-        </Text>
+        {/* Evolución de peso */}
+        <Text style={[styles.sectionTitle, { color: t.textMuted, marginTop: 12 }]}>EVOLUCIÓN DE PESO</Text>
+
+        <SimpleLineChart
+          data={weightData}
+          color="#FF7043"
+          title="Peso"
+          unit="últimos 10 registros (kg)"
+        />
       </ScrollView>
     </View>
   );
@@ -425,11 +591,56 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
-  comingSoon: {
+  lineChartWrapper: {
+    flexDirection: 'row',
+  },
+  yAxisLabels: {
+    width: 36,
+    justifyContent: 'space-between',
+    paddingVertical: 2,
+    height: CHART_HEIGHT - 40,
+  },
+  yLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    textAlign: 'right',
+    paddingRight: 6,
+  },
+  lineChartContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  gridLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 1,
+    opacity: 0.5,
+  },
+  dataPoint: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
+  },
+  xAxisLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  xLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  emptyChart: {
+    height: CHART_HEIGHT - 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  emptyChartText: {
     fontSize: 13,
-    fontWeight: '500',
-    textAlign: 'center',
-    marginTop: 20,
-    lineHeight: 20,
+    fontWeight: '600',
   },
 });
