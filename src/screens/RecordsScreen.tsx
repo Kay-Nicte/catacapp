@@ -69,8 +69,8 @@ export default function RecordsScreen() {
   );
 
   const filteredRecords = useMemo(() => {
-    if (filterType === "ALL") return todayRecords;
-    return todayRecords.filter((r: PetRecord) => r.type === filterType);
+    const filtered = filterType === "ALL" ? todayRecords : todayRecords.filter((r: PetRecord) => r.type === filterType);
+    return [...filtered].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [todayRecords, filterType]);
 
   const isToday = isSameDay(selectedDate, new Date());
@@ -291,7 +291,7 @@ export default function RecordsScreen() {
       {/* Records List */}
       <View style={{ flex: 1 }}>
         <FlatList
-          data={filteredRecords.sort((a: PetRecord, b: PetRecord) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())}
+          data={filteredRecords}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={() => (
