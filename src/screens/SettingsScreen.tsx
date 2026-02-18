@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Constants from "expo-constants";
 import {
   View,
   Text,
@@ -682,7 +683,7 @@ export default function SettingsScreen() {
 
         {/* Versión */}
         <Text style={[styles.versionText, { color: t.textMuted }]}>
-          CatacApp v1.0.0
+          CatacApp v{Constants.expoConfig?.version ?? "1.0.0"}
         </Text>
       </ScrollView>
 

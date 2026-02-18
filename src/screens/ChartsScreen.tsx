@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { Icon } from '../components/ui/Icon';
 import { AnimatedPressable } from '../components/ui/AnimatedPressable';
@@ -246,7 +247,7 @@ export default function ChartsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { selectedPet, selectedPetId } = usePet();
-  const { records } = useRecords();
+  const { records, isLoading } = useRecords();
   const { isPremium } = usePremium();
 
   // Filtrar registros de los últimos 7 días para la mascota seleccionada
@@ -338,6 +339,14 @@ export default function ChartsScreen() {
 
     return { totalFood, totalPoop, totalSleep, lastWeight };
   }, [petRecords]);
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { backgroundColor: t.bg, paddingTop: insets.top + 6, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={t.accent} />
+      </View>
+    );
+  }
 
   if (!isPremium) {
     return (
