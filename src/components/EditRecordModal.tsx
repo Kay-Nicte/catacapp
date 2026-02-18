@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TextInput,
   ScrollView,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/useTheme";
@@ -79,12 +80,14 @@ export default function EditRecordModal({
     const trimmedValue = value.trim();
 
     if (!trimmedTitle || !trimmedTime || !trimmedValue) {
+      Alert.alert("Faltan datos", "Completa el título, la hora y el valor del registro.");
       return;
     }
 
     // Validar formato de hora (HH:mm)
     const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
     if (!timeRegex.test(trimmedTime)) {
+      Alert.alert("Hora inválida", "La hora debe tener el formato HH:mm (ej: 08:30).");
       return;
     }
 

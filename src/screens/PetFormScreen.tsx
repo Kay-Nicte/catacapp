@@ -192,7 +192,7 @@ export default function PetFormScreen() {
 
     Alert.alert(
       "Eliminar ficha",
-      "Esto borra la mascota y sus datos (cuando tengamos DB será definitivo).",
+      "Esto eliminará permanentemente la mascota y todos sus registros, vacunas y citas veterinarias. Esta acción no se puede deshacer.",
       [
         { text: "Cancelar", style: "cancel" },
         {

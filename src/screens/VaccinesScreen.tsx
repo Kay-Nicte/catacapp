@@ -143,6 +143,19 @@ export default function VaccinesScreen() {
       return;
     }
 
+    // Validar que la próxima dosis no sea en el pasado
+    if (formNextDose) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (formNextDose < today) {
+        Alert.alert(
+          "Fecha inválida",
+          "La próxima dosis no puede ser una fecha pasada."
+        );
+        return;
+      }
+    }
+
     const vaccineFields = {
       petId: selectedPetId,
       name,
