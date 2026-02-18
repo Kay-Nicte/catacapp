@@ -14,6 +14,7 @@ import {
 import * as Notifications from "expo-notifications";
 import { File as FSFile, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import * as DocumentPicker from "expo-document-picker";
 import { useTheme } from "../theme/useTheme";
 import { shadows } from "../theme/tokens";
 import { useThemeMode, ThemeMode } from "../app/state/ThemeContext";
@@ -259,6 +260,7 @@ export default function SettingsScreen() {
           records,
           routines,
           vetVisits: visits,
+          vaccines,
         },
       };
 
@@ -269,6 +271,69 @@ export default function SettingsScreen() {
       await Sharing.shareAsync(file.uri, { mimeType: "application/json", dialogTitle: "Backup CatacApp" });
     } catch (error) {
       Alert.alert("Error", "No se pudo crear el backup. Inténtalo de nuevo.");
+    }
+  };
+
+  const handleRestoreBackup = async () => {
+    if (!isPremium) {
+      (navigation as any).navigate("Premium");
+      return;
+    }
+    Alert.alert(
+      "Restaurar backup",
+      "Esto reemplazará TODOS tus datos actuales con los del backup. ¿Estás seguro?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Restaurar", style: "destructive", onPress: doRestoreBackup },
+      ]
+    );
+  };
+
+  const doRestoreBackup = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "application/json",
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled || !result.assets?.[0]) return;
+
+      const fileUri = result.assets[0].uri;
+      const file = new FSFile(fileUri);
+      const content = file.text();
+      const backup = JSON.parse(content);
+
+      // Validar estructura del backup
+      if (!backup.version || !backup.data || !backup.data.pets) {
+        Alert.alert("Error", "El archivo seleccionado no es un backup válido de CatacApp.");
+        return;
+      }
+
+      const userId = user?.id;
+      if (!userId) return;
+
+      // Cancelar todas las notificaciones existentes
+      await cancelAllNotifications();
+
+      // Escribir datos en AsyncStorage
+      const { pets: bPets, records: bRecords, routines: bRoutines, vetVisits: bVisits, vaccines: bVaccines } = backup.data;
+
+      await AsyncStorage.multiSet([
+        [`@catacapp_pets_${userId}`, JSON.stringify(bPets || [])],
+        [`@catacapp_records_${userId}`, JSON.stringify(bRecords || [])],
+        [`@catacapp_routines_${userId}`, JSON.stringify(bRoutines || [])],
+        [`@catacapp_vet_visits_${userId}`, JSON.stringify(bVisits || [])],
+        [`@catacapp_vaccines_${userId}`, JSON.stringify(bVaccines || [])],
+      ]);
+
+      Alert.alert(
+        "Backup restaurado",
+        `Se restauraron ${bPets?.length || 0} mascotas, ${bRecords?.length || 0} registros, ${bVisits?.length || 0} citas y ${bVaccines?.length || 0} vacunas. Se cerrará la sesión para aplicar los cambios.`,
+        [{ text: "OK", onPress: () => logout() }]
+      );
+    } catch (error) {
+      console.error("Error restoring backup:", error);
+      Alert.alert("Error", "No se pudo restaurar el backup. Verifica que el archivo sea válido.");
     }
   };
 
@@ -644,6 +709,14 @@ export default function SettingsScreen() {
             title="Crear backup"
             subtitle="Guardar copia de seguridad"
             onPress={handleCreateBackup}
+            locked={!isPremium}
+          />
+          <View style={[styles.rowDivider, { backgroundColor: t.border }]} />
+          <SettingRow
+            icon="cloud-download"
+            title="Restaurar backup"
+            subtitle="Importar copia de seguridad"
+            onPress={handleRestoreBackup}
             locked={!isPremium}
           />
           <View style={[styles.rowDivider, { backgroundColor: t.border }]} />
