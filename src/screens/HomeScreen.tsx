@@ -372,55 +372,75 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Contenido con FlatList */}
-      <FlatList
-        style={styles.container}
-        contentContainerStyle={styles.contentContainer}
-        ListHeaderComponent={ListHeaderComponent}
-        data={summary}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
+      {pets.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <View style={[styles.emptyIcon, { backgroundColor: t.accentSoft }]}>
+            <Icon name="paw" size={48} color={t.accent} />
+          </View>
+          <Text style={[styles.emptyTitle, { color: t.text }]}>
+            Añade tu primera mascota
+          </Text>
+          <Text style={[styles.emptyDesc, { color: t.textMuted }]}>
+            Registra a tu compañero peludo para empezar a llevar su control de salud.
+          </Text>
           <AnimatedPressable
-            onPress={() => navigation.navigate("Registros")}
-            style={[
-              styles.summaryRow,
-              {
-                backgroundColor: t.card,
-                borderColor: t.border,
-                ...shadows.sm,
-              },
-            ]}
+            onPress={() => navigation.navigate("PetForm")}
+            style={[styles.emptyBtn, { backgroundColor: t.accent }]}
           >
-            <View style={styles.summaryRowLeft}>
-              <View style={[styles.iconCircle, { backgroundColor: t.accentSoft }]}>
-                <Icon name={item.icon} size={20} color={t.accent} />
-              </View>
-              <Text style={[styles.summaryName, { color: t.text }]}>{item.name}</Text>
-            </View>
-
-            <View style={styles.summaryRowRight}>
-              <Text style={[styles.summaryValue, { color: t.textMuted }]}>{item.value}</Text>
-              <Icon name="chevron-forward" size={18} color={t.textMuted} />
-            </View>
+            <Icon name="add" size={20} color="#fff" />
+            <Text style={styles.emptyBtnText}>Añadir mascota</Text>
           </AnimatedPressable>
-        )}
-        ItemSeparatorComponent={() => (
-          <View style={[styles.separator, { backgroundColor: t.border }]} />
-        )}
-        ListFooterComponent={
-          <>
-            {isMemorialSelected && (
-              <Text style={[styles.memorialHint, { color: t.textMuted }]}>
-                Esta mascota está en modo recuerdo (solo lectura).
-              </Text>
-            )}
+        </View>
+      ) : (
+        <FlatList
+          style={styles.container}
+          contentContainerStyle={styles.contentContainer}
+          ListHeaderComponent={ListHeaderComponent}
+          data={summary}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <AnimatedPressable
+              onPress={() => navigation.navigate("Registros")}
+              style={[
+                styles.summaryRow,
+                {
+                  backgroundColor: t.card,
+                  borderColor: t.border,
+                  ...shadows.sm,
+                },
+              ]}
+            >
+              <View style={styles.summaryRowLeft}>
+                <View style={[styles.iconCircle, { backgroundColor: t.accentSoft }]}>
+                  <Icon name={item.icon} size={20} color={t.accent} />
+                </View>
+                <Text style={[styles.summaryName, { color: t.text }]}>{item.name}</Text>
+              </View>
 
-            <Text style={[styles.tip, { color: t.textMuted }]}>
-              Tip: mantén pulsada una mascota para editarla.
-            </Text>
-          </>
-        }
-      />
+              <View style={styles.summaryRowRight}>
+                <Text style={[styles.summaryValue, { color: t.textMuted }]}>{item.value}</Text>
+                <Icon name="chevron-forward" size={18} color={t.textMuted} />
+              </View>
+            </AnimatedPressable>
+          )}
+          ItemSeparatorComponent={() => (
+            <View style={[styles.separator, { backgroundColor: t.border }]} />
+          )}
+          ListFooterComponent={
+            <>
+              {isMemorialSelected && (
+                <Text style={[styles.memorialHint, { color: t.textMuted }]}>
+                  Esta mascota está en modo recuerdo (solo lectura).
+                </Text>
+              )}
+
+              <Text style={[styles.tip, { color: t.textMuted }]}>
+                Tip: mantén pulsada una mascota para editarla.
+              </Text>
+            </>
+          }
+        />
+      )}
 
       {/* Modal de rutinas */}
       <RoutinesModal
@@ -603,4 +623,44 @@ const styles = StyleSheet.create({
 
   memorialHint: { marginTop: 10, fontSize: 12, fontWeight: "600" },
   tip: { marginTop: 10, fontSize: 12, fontWeight: "600" },
+
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 40,
+  },
+  emptyIcon: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
+  },
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    marginBottom: 10,
+  },
+  emptyDesc: {
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 28,
+  },
+  emptyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 24,
+    height: 50,
+    borderRadius: 25,
+  },
+  emptyBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "800",
+  },
 });
