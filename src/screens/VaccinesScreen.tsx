@@ -60,7 +60,9 @@ export default function VaccinesScreen() {
   const [showNextDosePicker, setShowNextDosePicker] = useState(false);
 
   const petVaccines = useMemo(
-    () => getVaccinesByPet(selectedPetId),
+    () => [...getVaccinesByPet(selectedPetId)].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    ),
     [getVaccinesByPet, selectedPetId]
   );
 
@@ -244,9 +246,7 @@ export default function VaccinesScreen() {
       </View>
 
       <FlatList
-        data={petVaccines.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        )}
+        data={petVaccines}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
