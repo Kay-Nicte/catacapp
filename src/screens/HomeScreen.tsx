@@ -82,7 +82,7 @@ export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
 
   const { pets, selectedPetId, setSelectedPetId, selectedPet } = usePet();
-  const { getRecordsByDate, getTodayRoutines, confirmRoutine, skipRoutine } = useRecords();
+  const { getRecordsByDate, getRecordsByPet, getTodayRoutines, confirmRoutine, skipRoutine } = useRecords();
   
   const [routinesModalVisible, setRoutinesModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -113,6 +113,13 @@ export default function HomeScreen() {
       return acc + (match ? parseInt(match[0]) : 0);
     }, 0);
 
+    // Último peso registrado (de todos los records, no solo hoy)
+    const allPetRecords = getRecordsByPet(selectedPetId);
+    const weightRecords = allPetRecords
+      .filter(r => r.type === "WEIGHT")
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const lastWeight = weightRecords.length > 0 ? weightRecords[0].value : null;
+
     return [
       {
         id: "s1",
@@ -137,8 +144,15 @@ export default function HomeScreen() {
         value: totalSleep > 0 ? `${totalSleep} horas` : "Sin registros",
         type: "SLEEP",
       },
+      {
+        id: "s4",
+        icon: getIcon("WEIGHT"),
+        name: prettyType("WEIGHT"),
+        value: lastWeight || "Sin registros",
+        type: "WEIGHT",
+      },
     ];
-  }, [todayRecords]);
+  }, [todayRecords, getRecordsByPet, selectedPetId]);
 
   const handleConfirmRoutine = (routineId: string, defaultValue?: string, routineTime?: string) => {
     if (isMemorialSelected) return;
