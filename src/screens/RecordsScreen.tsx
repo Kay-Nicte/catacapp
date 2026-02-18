@@ -20,6 +20,7 @@ import { usePet } from "../app/state/PetContext";
 import { useRecords, RecordType, Record as PetRecord } from "../app/state/RecordsContext";
 import { useAds } from "../app/state/AdsContext";
 import EditRecordModal from "../components/EditRecordModal";
+import { formatDateFull } from "../utils/format";
 
 const typeLabels: RecordType[] = ["FOOD", "POOP", "SLEEP", "WEIGHT", "NOTE"];
 
@@ -31,14 +32,6 @@ function prettyType(t: RecordType) {
     case "WEIGHT": return "Peso";
     case "NOTE": return "Nota";
   }
-}
-
-function formatDate(date: Date): string {
-  const months = [
-    "enero", "febrero", "marzo", "abril", "mayo", "junio",
-    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-  ];
-  return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
 }
 
 function isSameDay(d1: Date, d2: Date): boolean {
@@ -227,7 +220,7 @@ export default function RecordsScreen() {
         >
           <Icon name="calendar" size={16} color={t.textMuted} />
           <Text style={[styles.dateText, { color: t.text }]}>
-            {isToday ? "Hoy" : formatDate(selectedDate)}
+            {isToday ? "Hoy" : formatDateFull(selectedDate)}
           </Text>
         </AnimatedPressable>
 

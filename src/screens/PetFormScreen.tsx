@@ -24,6 +24,7 @@ import { useRoute, useNavigation } from "@react-navigation/native";
 import type { RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../app/navigation/AppStack";
+import { formatDatePadded } from "../utils/format";
 
 export default function PetFormScreen() {
   const t = useTheme();
@@ -85,11 +86,6 @@ export default function PetFormScreen() {
     return null;
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
-
-  const formatDate = (date: Date | null): string => {
-    if (!date) return "";
-    return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-  };
 
   const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
@@ -259,7 +255,7 @@ export default function PetFormScreen() {
           ]}
         >
           <Text style={[styles.dateText, { color: birthDate ? t.text : t.textMuted }]}>
-            {birthDate ? formatDate(birthDate) : "Seleccionar fecha"}
+            {birthDate ? formatDatePadded(birthDate) : "Seleccionar fecha"}
           </Text>
         </Pressable>
         {birthDate && !readOnly && (

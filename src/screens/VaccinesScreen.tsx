@@ -21,18 +21,7 @@ import { useVaccines, Vaccine } from "../app/state/VaccinesContext";
 import { Icon } from "../components/ui/Icon";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
 import { shadows } from "../theme/tokens";
-
-function formatDate(isoString: string): string {
-  const date = new Date(isoString);
-  const day = date.getDate();
-  const months = [
-    "ene", "feb", "mar", "abr", "may", "jun",
-    "jul", "ago", "sep", "oct", "nov", "dic",
-  ];
-  const month = months[date.getMonth()];
-  const year = date.getFullYear();
-  return `${day} ${month} ${year}`;
-}
+import { formatDateLong, formatDateShort } from "../utils/format";
 
 function isUpcoming(dateString?: string): boolean {
   if (!dateString) return false;
@@ -117,10 +106,6 @@ export default function VaccinesScreen() {
     if (selectedDate) {
       setFormNextDose(selectedDate);
     }
-  };
-
-  const formatDateDisplay = (date: Date): string => {
-    return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
   };
 
   const handleDelete = (id: string) => {
@@ -242,7 +227,7 @@ export default function VaccinesScreen() {
                   <Text style={[styles.alertTitle, { color: t.text }]}>{vaccine.name}</Text>
                   <Text style={[styles.alertDate, { color: pastDue ? t.danger : t.textMuted }]}>
                     {pastDue ? "Vencida: " : "Próxima: "}
-                    {formatDate(vaccine.nextDose!)}
+                    {formatDateLong(vaccine.nextDose!)}
                   </Text>
                 </View>
               </AnimatedPressable>
@@ -287,11 +272,11 @@ export default function VaccinesScreen() {
             <View style={styles.vaccineInfo}>
               <Text style={[styles.vaccineName, { color: t.text }]}>{item.name}</Text>
               <Text style={[styles.vaccineDate, { color: t.textMuted }]}>
-                Aplicada: {formatDate(item.date)}
+                Aplicada: {formatDateLong(item.date)}
               </Text>
               {item.nextDose && (
                 <Text style={[styles.vaccineNext, { color: t.textMuted }]}>
-                  Próxima dosis: {formatDate(item.nextDose)}
+                  Próxima dosis: {formatDateLong(item.nextDose)}
                 </Text>
               )}
               {item.notes && (
@@ -379,7 +364,7 @@ export default function VaccinesScreen() {
             >
               <Icon name="calendar-outline" size={20} color={t.textMuted} />
               <Text style={[styles.dateText, { color: t.text }]}>
-                {formatDateDisplay(formDate)}
+                {formatDateShort(formDate)}
               </Text>
             </AnimatedPressable>
             {showDatePicker && (
@@ -398,7 +383,7 @@ export default function VaccinesScreen() {
             >
               <Icon name="calendar-outline" size={20} color={t.textMuted} />
               <Text style={[styles.dateText, { color: formNextDose ? t.text : t.textMuted }]}>
-                {formNextDose ? formatDateDisplay(formNextDose) : "Sin fecha"}
+                {formNextDose ? formatDateShort(formNextDose) : "Sin fecha"}
               </Text>
               {formNextDose && (
                 <AnimatedPressable onPress={() => setFormNextDose(null)} hitSlop={8}>
