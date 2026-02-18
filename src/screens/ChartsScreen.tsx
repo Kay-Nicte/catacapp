@@ -331,9 +331,12 @@ export default function ChartsScreen() {
     const totalFood = petRecords.filter((r) => r.type === 'FOOD').length;
     const totalPoop = petRecords.filter((r) => r.type === 'POOP').length;
     const totalSleep = petRecords.filter((r) => r.type === 'SLEEP').length;
-    const totalWeight = petRecords.filter((r) => r.type === 'WEIGHT').length;
+    const weightRecords = petRecords
+      .filter((r) => r.type === 'WEIGHT')
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const lastWeight = weightRecords.length > 0 ? weightRecords[0].value : null;
 
-    return { totalFood, totalPoop, totalSleep, totalWeight };
+    return { totalFood, totalPoop, totalSleep, lastWeight };
   }, [petRecords]);
 
   if (!isPremium) {
@@ -410,9 +413,9 @@ export default function ChartsScreen() {
           />
           <StatCard
             icon="fitness"
-            title="Peso"
-            value={stats.totalWeight.toString()}
-            subtitle="registros totales"
+            title="Peso actual"
+            value={stats.lastWeight || "—"}
+            subtitle={stats.lastWeight ? "último registro" : "sin registros"}
           />
         </View>
 
