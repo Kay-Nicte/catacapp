@@ -39,10 +39,13 @@ export function VetProvider({ children }: { children: ReactNode }) {
 
   const storageKey = `${VET_STORAGE_KEY}_${user?.id}`;
 
-  // Cargar datos al iniciar
+  // Cargar datos al iniciar / limpiar al cerrar sesión
   useEffect(() => {
     if (user) {
       loadData();
+    } else {
+      setVisits([]);
+      setIsLoading(true);
     }
   }, [user]);
 

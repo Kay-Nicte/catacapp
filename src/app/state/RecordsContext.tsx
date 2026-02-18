@@ -92,10 +92,15 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Cargar datos al iniciar
+  // Cargar datos al iniciar / limpiar al cerrar sesión
   useEffect(() => {
     if (user) {
       loadData();
+    } else {
+      setRecords([]);
+      setRoutines([]);
+      setDailyRoutineStatus(new Map());
+      setIsLoading(true);
     }
   }, [user]);
 

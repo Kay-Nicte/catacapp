@@ -37,10 +37,13 @@ export function VaccinesProvider({ children }: { children: ReactNode }) {
 
   const storageKey = `${VACCINES_STORAGE_KEY}_${user?.id}`;
 
-  // Cargar datos al iniciar
+  // Cargar datos al iniciar / limpiar al cerrar sesión
   useEffect(() => {
     if (user) {
       loadData();
+    } else {
+      setVaccines([]);
+      setIsLoading(true);
     }
   }, [user]);
 
