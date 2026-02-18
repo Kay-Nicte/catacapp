@@ -24,6 +24,8 @@ import { useAds } from "../app/state/AdsContext";
 import { usePet } from "../app/state/PetContext";
 import { useRecords } from "../app/state/RecordsContext";
 import { useVet } from "../app/state/VetContext";
+import { useVaccines } from "../app/state/VaccinesContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { Icon } from "../components/ui/Icon";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
@@ -88,11 +90,12 @@ export default function SettingsScreen() {
   const navigation = useNavigation();
   const { user, logout } = useAuth();
   const { isPremium, cancelSubscription, status: premiumStatus } = usePremium();
-  const { settings: notificationSettings, updateSettings, hasPermission, requestPermission, scheduleRoutineReminder, cancelRoutineReminder } = useNotifications();
+  const { settings: notificationSettings, updateSettings, hasPermission, requestPermission, scheduleRoutineReminder, cancelRoutineReminder, cancelAllNotifications } = useNotifications();
   const { showInterstitial, showAds } = useAds();
   const { pets } = usePet();
   const { records, routines } = useRecords();
   const { visits } = useVet();
+  const { vaccines } = useVaccines();
   const [privacyVisible, setPrivacyVisible] = useState(false);
 
   const handleToggleNotifications = async (value: boolean) => {
@@ -275,14 +278,42 @@ export default function SettingsScreen() {
   const handleClearData = () => {
     Alert.alert(
       "Borrar todos los datos",
-      "¿Estás seguro? Esta acción eliminará permanentemente todos los datos de la aplicación. Esta acción no se puede deshacer.",
+      "¿Estás seguro? Esta acción eliminará permanentemente todas tus mascotas, registros, vacunas, citas y configuración. No se puede deshacer.",
       [
         { text: "Cancelar", style: "cancel" },
         {
           text: "Borrar todo",
           style: "destructive",
-          onPress: () => {
-            Alert.alert("Datos borrados", "Todos los datos han sido eliminados. (Simulado)");
+          onPress: async () => {
+            try {
+              const userId = user?.id;
+              if (!userId) return;
+
+              // Cancelar todas las notificaciones programadas
+              await cancelAllNotifications();
+
+              // Borrar todas las keys del usuario en AsyncStorage
+              const keys = [
+                `@catacapp_pets_${userId}`,
+                `@catacapp_records_${userId}`,
+                `@catacapp_routines_${userId}`,
+                `@catacapp_routine_status_${userId}`,
+                `@catacapp_vet_visits_${userId}`,
+                `@catacapp_vaccines_${userId}`,
+                `@catacapp_premium_${userId}`,
+              ];
+              await AsyncStorage.multiRemove(keys);
+
+              // Logout para reiniciar todos los contextos
+              Alert.alert(
+                "Datos borrados",
+                "Todos los datos han sido eliminados. Se cerrará la sesión.",
+                [{ text: "OK", onPress: () => logout() }]
+              );
+            } catch (error) {
+              console.error("Error clearing data:", error);
+              Alert.alert("Error", "No se pudieron borrar los datos.");
+            }
           },
         },
       ]
