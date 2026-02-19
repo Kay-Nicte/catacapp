@@ -294,9 +294,7 @@ export default function RecordsScreen() {
           data={filteredRecords}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContent}
-          ItemSeparatorComponent={() => (
-            <View style={[styles.separator, { backgroundColor: t.border }]} />
-          )}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
           renderItem={({ item }) => {
             const itemDate = new Date(item.timestamp);
             const displayTime = item.customTime || `${String(itemDate.getHours()).padStart(2, "0")}:${String(
@@ -571,8 +569,8 @@ const styles = StyleSheet.create({
   filterText: { fontSize: 13, fontWeight: "700" },
 
   listContent: {
-    paddingVertical: 12,
-    gap: 10,
+    paddingTop: 12,
+    paddingBottom: 80,
   },
   recordRow: {
     borderRadius: 16,
@@ -597,7 +595,7 @@ const styles = StyleSheet.create({
   },
   sourceBadgeText: { fontSize: 10, fontWeight: "800", letterSpacing: 0.5 },
   recordMeta: { fontSize: 13, fontWeight: "600" },
-  separator: { height: 1, opacity: 0.5 },
+  separator: { height: 10 },
 
   emptyContainer: {
     alignItems: "center",
