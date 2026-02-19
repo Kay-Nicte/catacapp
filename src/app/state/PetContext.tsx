@@ -58,10 +58,14 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
   const storageKey = `${PETS_STORAGE_KEY}_${user?.id}`;
   const selectedKey = `${SELECTED_PET_KEY}_${user?.id}`;
 
-  // Cargar datos al iniciar
+  // Cargar datos al iniciar / limpiar al cerrar sesión
   useEffect(() => {
     if (user) {
       loadData();
+    } else {
+      setPets([]);
+      setSelectedPetId("");
+      setIsLoading(true);
     }
   }, [user]);
 

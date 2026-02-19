@@ -8,11 +8,13 @@ import {
   TextInput,
   ScrollView,
   Platform,
+  Alert,
 } from "react-native";
 import { Icon } from "./ui/Icon";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/useTheme";
+import { formatDateShort, formatTime } from "../utils/format";
 
 interface EditVetVisitModalProps {
   visible: boolean;
@@ -94,20 +96,13 @@ export default function EditVetVisitModal({
     }
   };
 
-  const formatDateDisplay = (date: Date): string => {
-    return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
-  };
-
-  const formatTimeDisplay = (date: Date): string => {
-    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-  };
-
   const handleSave = () => {
     const trimmedVet = veterinarian.trim();
     const trimmedReason = reason.trim();
     const trimmedNotes = notes.trim();
 
     if (!trimmedVet || !trimmedReason) {
+      Alert.alert("Faltan datos", "Completa el veterinario y el motivo de la visita.");
       return;
     }
 
@@ -181,7 +176,7 @@ export default function EditVetVisitModal({
           >
             <Icon name="calendar-outline" size={20} color={t.textMuted} />
             <Text style={[styles.dateText, { color: t.text }]}>
-              {formatDateDisplay(dateValue)}
+              {formatDateShort(dateValue)}
             </Text>
           </Pressable>
           {showDatePicker && (
@@ -200,7 +195,7 @@ export default function EditVetVisitModal({
           >
             <Icon name="time-outline" size={20} color={t.textMuted} />
             <Text style={[styles.dateText, { color: t.text }]}>
-              {formatTimeDisplay(timeValue)}
+              {formatTime(timeValue)}
             </Text>
           </Pressable>
           {showTimePicker && (

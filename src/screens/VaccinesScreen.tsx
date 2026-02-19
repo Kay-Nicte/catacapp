@@ -21,18 +21,7 @@ import { useVaccines, Vaccine } from "../app/state/VaccinesContext";
 import { Icon } from "../components/ui/Icon";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
 import { shadows } from "../theme/tokens";
-
-function formatDate(isoString: string): string {
-  const date = new Date(isoString);
-  const day = date.getDate();
-  const months = [
-    "ene", "feb", "mar", "abr", "may", "jun",
-    "jul", "ago", "sep", "oct", "nov", "dic",
-  ];
-  const month = months[date.getMonth()];
-  const year = date.getFullYear();
-  return `${day} ${month} ${year}`;
-}
+import { formatDateLong, formatDateShort } from "../utils/format";
 
 function isUpcoming(dateString?: string): boolean {
   if (!dateString) return false;
@@ -71,7 +60,9 @@ export default function VaccinesScreen() {
   const [showNextDosePicker, setShowNextDosePicker] = useState(false);
 
   const petVaccines = useMemo(
-    () => getVaccinesByPet(selectedPetId),
+    () => [...getVaccinesByPet(selectedPetId)].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    ),
     [getVaccinesByPet, selectedPetId]
   );
 
@@ -119,10 +110,6 @@ export default function VaccinesScreen() {
     }
   };
 
-  const formatDateDisplay = (date: Date): string => {
-    return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
-  };
-
   const handleDelete = (id: string) => {
     if (isMemorialSelected) return;
     Alert.alert("Eliminar vacuna", "¿Estás seguro de que quieres eliminar este registro?", [
@@ -141,6 +128,19 @@ export default function VaccinesScreen() {
     if (!name) {
       Alert.alert("Faltan datos", "Completa al menos el nombre de la vacuna.");
       return;
+    }
+
+    // Validar que la próxima dosis no sea en el pasado
+    if (formNextDose) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (formNextDose < today) {
+        Alert.alert(
+          "Fecha inválida",
+          "La próxima dosis no puede ser una fecha pasada."
+        );
+        return;
+      }
     }
 
     const vaccineFields = {
@@ -229,7 +229,7 @@ export default function VaccinesScreen() {
                   <Text style={[styles.alertTitle, { color: t.text }]}>{vaccine.name}</Text>
                   <Text style={[styles.alertDate, { color: pastDue ? t.danger : t.textMuted }]}>
                     {pastDue ? "Vencida: " : "Próxima: "}
-                    {formatDate(vaccine.nextDose!)}
+                    {formatDateLong(vaccine.nextDose!)}
                   </Text>
                 </View>
               </AnimatedPressable>
@@ -246,9 +246,7 @@ export default function VaccinesScreen() {
       </View>
 
       <FlatList
-        data={petVaccines.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        )}
+        data={petVaccines}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -274,11 +272,11 @@ export default function VaccinesScreen() {
             <View style={styles.vaccineInfo}>
               <Text style={[styles.vaccineName, { color: t.text }]}>{item.name}</Text>
               <Text style={[styles.vaccineDate, { color: t.textMuted }]}>
-                Aplicada: {formatDate(item.date)}
+                Aplicada: {formatDateLong(item.date)}
               </Text>
               {item.nextDose && (
                 <Text style={[styles.vaccineNext, { color: t.textMuted }]}>
-                  Próxima dosis: {formatDate(item.nextDose)}
+                  Próxima dosis: {formatDateLong(item.nextDose)}
                 </Text>
               )}
               {item.notes && (
@@ -299,7 +297,8 @@ export default function VaccinesScreen() {
             </Text>
             {!isMemorialSelected && (
               <Text style={[styles.emptyHint, { color: t.textMuted }]}>
-                Usa el botón + para añadir una
+                Lleva un control de las vacunas de {selectedPet?.name || "tu mascota"}.{"\n"}
+                Pulsa + para registrar la primera.
               </Text>
             )}
           </View>
@@ -366,7 +365,7 @@ export default function VaccinesScreen() {
             >
               <Icon name="calendar-outline" size={20} color={t.textMuted} />
               <Text style={[styles.dateText, { color: t.text }]}>
-                {formatDateDisplay(formDate)}
+                {formatDateShort(formDate)}
               </Text>
             </AnimatedPressable>
             {showDatePicker && (
@@ -385,7 +384,7 @@ export default function VaccinesScreen() {
             >
               <Icon name="calendar-outline" size={20} color={t.textMuted} />
               <Text style={[styles.dateText, { color: formNextDose ? t.text : t.textMuted }]}>
-                {formNextDose ? formatDateDisplay(formNextDose) : "Sin fecha"}
+                {formNextDose ? formatDateShort(formNextDose) : "Sin fecha"}
               </Text>
               {formNextDose && (
                 <AnimatedPressable onPress={() => setFormNextDose(null)} hitSlop={8}>

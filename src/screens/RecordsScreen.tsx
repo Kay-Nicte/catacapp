@@ -20,6 +20,7 @@ import { usePet } from "../app/state/PetContext";
 import { useRecords, RecordType, Record as PetRecord } from "../app/state/RecordsContext";
 import { useAds } from "../app/state/AdsContext";
 import EditRecordModal from "../components/EditRecordModal";
+import { formatDateFull } from "../utils/format";
 
 const typeLabels: RecordType[] = ["FOOD", "POOP", "SLEEP", "WEIGHT", "NOTE"];
 
@@ -31,14 +32,6 @@ function prettyType(t: RecordType) {
     case "WEIGHT": return "Peso";
     case "NOTE": return "Nota";
   }
-}
-
-function formatDate(date: Date): string {
-  const months = [
-    "enero", "febrero", "marzo", "abril", "mayo", "junio",
-    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-  ];
-  return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
 }
 
 function isSameDay(d1: Date, d2: Date): boolean {
@@ -76,8 +69,8 @@ export default function RecordsScreen() {
   );
 
   const filteredRecords = useMemo(() => {
-    if (filterType === "ALL") return todayRecords;
-    return todayRecords.filter((r: PetRecord) => r.type === filterType);
+    const filtered = filterType === "ALL" ? todayRecords : todayRecords.filter((r: PetRecord) => r.type === filterType);
+    return [...filtered].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [todayRecords, filterType]);
 
   const isToday = isSameDay(selectedDate, new Date());
@@ -227,7 +220,7 @@ export default function RecordsScreen() {
         >
           <Icon name="calendar" size={16} color={t.textMuted} />
           <Text style={[styles.dateText, { color: t.text }]}>
-            {isToday ? "Hoy" : formatDate(selectedDate)}
+            {isToday ? "Hoy" : formatDateFull(selectedDate)}
           </Text>
         </AnimatedPressable>
 
@@ -298,7 +291,7 @@ export default function RecordsScreen() {
       {/* Records List */}
       <View style={{ flex: 1 }}>
         <FlatList
-          data={filteredRecords.sort((a: PetRecord, b: PetRecord) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())}
+          data={filteredRecords}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={() => (

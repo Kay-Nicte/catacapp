@@ -16,10 +16,7 @@ import { usePet } from "../app/state/PetContext";
 import { useVet, VetVisit } from "../app/state/VetContext";
 import { useAds } from "../app/state/AdsContext";
 import EditVetVisitModal from "../components/EditVetVisitModal";
-
-function formatTime(date: Date): string {
-  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-}
+import { formatTime } from "../utils/format";
 
 export default function VetScreen() {
   const t = useTheme();
@@ -249,7 +246,8 @@ export default function VetScreen() {
             </Text>
             {!isMemorialSelected && (
               <Text style={[styles.emptyHint, { color: t.textMuted }]}>
-                Usa el botón + para añadir una
+                Registra las citas de {selectedPet?.name || "tu mascota"} con el veterinario.{"\n"}
+                Pulsa + para añadir la primera.
               </Text>
             )}
           </View>

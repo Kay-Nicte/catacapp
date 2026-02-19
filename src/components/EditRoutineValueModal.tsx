@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/useTheme";
 import { RecordType } from "../app/state/RecordsContext";
 import { Icon } from "./ui/Icon";
+import { formatTime } from "../utils/format";
 
 const typeLabels: RecordType[] = ["FOOD", "POOP", "SLEEP", "WEIGHT", "NOTE"];
 
@@ -63,10 +64,6 @@ export default function EditRecordModal({
   const [value, setValue] = useState(initialData?.value || "");
   const [showTimePicker, setShowTimePicker] = useState(false);
 
-  const formatTimeDisplay = (date: Date): string => {
-    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-  };
-
   const onTimeChange = (event: DateTimePickerEvent, selectedTime?: Date) => {
     setShowTimePicker(Platform.OS === "ios");
     if (selectedTime) {
@@ -89,7 +86,7 @@ export default function EditRecordModal({
 
   const handleSave = () => {
     const trimmedTitle = title.trim();
-    const trimmedTime = formatTimeDisplay(timeValue);
+    const trimmedTime = formatTime(timeValue);
     const trimmedValue = value.trim();
 
     if (!trimmedTitle || !trimmedValue) {
@@ -192,7 +189,7 @@ export default function EditRecordModal({
           >
             <Icon name="time-outline" size={20} color={t.textMuted} />
             <Text style={[styles.timeText, { color: t.text }]}>
-              {formatTimeDisplay(timeValue)}
+              {formatTime(timeValue)}
             </Text>
           </Pressable>
           {showTimePicker && (

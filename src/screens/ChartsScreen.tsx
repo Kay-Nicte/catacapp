@@ -96,6 +96,9 @@ function SimpleLineChart({
           <Text style={[styles.emptyChartText, { color: t.textMuted }]}>
             Sin datos de peso registrados
           </Text>
+          <Text style={[styles.emptyChartHint, { color: t.textMuted }]}>
+            Añade registros de peso en la pestaña Registros
+          </Text>
         </View>
         <Text style={[styles.chartUnit, { color: t.textMuted }]}>{unit}</Text>
       </View>
@@ -337,8 +340,20 @@ export default function ChartsScreen() {
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     const lastWeight = weightRecords.length > 0 ? weightRecords[0].value : null;
 
-    return { totalFood, totalPoop, totalSleep, lastWeight };
-  }, [petRecords]);
+    // 7-day averages
+    const avgFood = foodData.reduce((s, d) => s + d.value, 0) / 7;
+    const avgPoop = poopData.reduce((s, d) => s + d.value, 0) / 7;
+
+    // Weight stats (min, max, avg)
+    const weightValues = weightData.map(d => d.value).filter(v => v > 0);
+    const weightMin = weightValues.length > 0 ? Math.min(...weightValues) : null;
+    const weightMax = weightValues.length > 0 ? Math.max(...weightValues) : null;
+    const weightAvg = weightValues.length > 0
+      ? weightValues.reduce((s, v) => s + v, 0) / weightValues.length
+      : null;
+
+    return { totalFood, totalPoop, totalSleep, lastWeight, avgFood, avgPoop, weightMin, weightMax, weightAvg };
+  }, [petRecords, foodData, poopData, weightData]);
 
   if (isLoading) {
     return (
@@ -395,6 +410,17 @@ export default function ChartsScreen() {
         </View>
       </View>
 
+      {petRecords.length === 0 ? (
+        <View style={styles.globalEmpty}>
+          <Icon name="bar-chart-outline" size={64} color={t.textMuted} />
+          <Text style={[styles.globalEmptyTitle, { color: t.text }]}>
+            Sin datos todavía
+          </Text>
+          <Text style={[styles.globalEmptyHint, { color: t.textMuted }]}>
+            Empieza a registrar comidas, sueño, peso y más en la pestaña Registros para ver tus estadísticas aquí.
+          </Text>
+        </View>
+      ) : (
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
@@ -406,13 +432,13 @@ export default function ChartsScreen() {
             icon="restaurant"
             title="Comidas"
             value={stats.totalFood.toString()}
-            subtitle="registros totales"
+            subtitle={`~${stats.avgFood.toFixed(1)}/día (7 días)`}
           />
           <StatCard
             icon="water"
             title="Deposiciones"
             value={stats.totalPoop.toString()}
-            subtitle="registros totales"
+            subtitle={`~${stats.avgPoop.toFixed(1)}/día (7 días)`}
           />
           <StatCard
             icon="moon"
@@ -424,7 +450,11 @@ export default function ChartsScreen() {
             icon="fitness"
             title="Peso actual"
             value={stats.lastWeight || "—"}
-            subtitle={stats.lastWeight ? "último registro" : "sin registros"}
+            subtitle={stats.lastWeight
+              ? (stats.weightMin !== null && stats.weightMax !== null && stats.weightMin !== stats.weightMax
+                ? `Min: ${stats.weightMin.toFixed(1)} · Max: ${stats.weightMax.toFixed(1)}`
+                : "último registro")
+              : "sin registros"}
           />
         </View>
 
@@ -459,9 +489,12 @@ export default function ChartsScreen() {
           data={weightData}
           color="#FF7043"
           title="Peso"
-          unit="últimos 10 registros (kg)"
+          unit={stats.weightAvg !== null
+            ? `Promedio: ${stats.weightAvg.toFixed(2)} kg · últimos ${weightData.length} registros`
+            : "últimos 10 registros (kg)"}
         />
       </ScrollView>
+      )}
     </View>
   );
 }
@@ -678,5 +711,27 @@ const styles = StyleSheet.create({
   emptyChartText: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  emptyChartHint: {
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  globalEmpty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 40,
+    gap: 12,
+  },
+  globalEmptyTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  globalEmptyHint: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 21,
   },
 });

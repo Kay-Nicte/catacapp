@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
 
@@ -67,10 +68,39 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
   const routinesKey = `${ROUTINES_STORAGE_KEY}_${user?.id}`;
   const statusKey = `${ROUTINE_STATUS_KEY}_${user?.id}`;
 
-  // Cargar datos al iniciar
+  const lastDateRef = useRef<string>(new Date().toDateString());
+
+  // Reset routine status when date changes (midnight or app foregrounded next day)
+  useEffect(() => {
+    const checkDateChange = () => {
+      const today = new Date().toDateString();
+      if (today !== lastDateRef.current) {
+        lastDateRef.current = today;
+        setDailyRoutineStatus(new Map());
+      }
+    };
+
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') checkDateChange();
+    });
+
+    const interval = setInterval(checkDateChange, 60_000); // check every minute
+
+    return () => {
+      sub.remove();
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Cargar datos al iniciar / limpiar al cerrar sesión
   useEffect(() => {
     if (user) {
       loadData();
+    } else {
+      setRecords([]);
+      setRoutines([]);
+      setDailyRoutineStatus(new Map());
+      setIsLoading(true);
     }
   }, [user]);
 
@@ -111,7 +141,11 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
         setRoutines(JSON.parse(storedRoutines));
       }
       if (storedStatus) {
-        setDailyRoutineStatus(new Map(Object.entries(JSON.parse(storedStatus))));
+        // Only keep today's entries on load
+        const todaySuffix = `_${new Date().toDateString()}`;
+        const allEntries: [string, string][] = Object.entries(JSON.parse(storedStatus));
+        const todayEntries = allEntries.filter(([key]) => key.endsWith(todaySuffix));
+        setDailyRoutineStatus(new Map(todayEntries));
       }
     } catch (error) {
       console.error('Error loading records:', error);
