@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "600979458540",
+    "project_id": "catacapp-c9767",
+    "storage_bucket": "catacapp-c9767.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:600979458540:android:0abd19c939467d6daf98c9",
+        "android_client_info": {
+          "package_name": "com.catacapp.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "600979458540-nhqu61a4tcup619j1fngs2m59m08dt5b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.catacapp.app",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "600979458540-31hmcfi0avmp2t63h7peo9jk7qoi960i.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCG_17ziiJAuFMWvEtEORZ8mT188zwYEAE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "600979458540-31hmcfi0avmp2t63h7peo9jk7qoi960i.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
