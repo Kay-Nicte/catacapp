@@ -1,8 +1,10 @@
-import React, { useMemo, useState } from "react";
-import { View, Text, Pressable, FlatList, StyleSheet, ActivityIndicator } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { View, Text, Pressable, FlatList, StyleSheet, ActivityIndicator, Modal, Switch } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/useTheme";
 import { shadows } from "../theme/tokens";
+import { useAuth } from "../app/state/AuthContext";
 import { usePet } from "../app/state/PetContext";
 import { useRecords, RecordType } from "../app/state/RecordsContext";
 import PetAvatar from "../components/PetAvatar";
@@ -16,6 +18,10 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { RootStackParamList } from "../app/navigation/AppStack";
 import type { TabsParamList } from "../app/navigation/AppTabs";
+
+const SUMMARY_PREFS_KEY = "@catacapp_summary_prefs";
+type SummaryPrefs = Record<string, boolean>; // keyed by RecordType
+const DEFAULT_PREFS: SummaryPrefs = { FOOD: true, POOP: true, SLEEP: true, WEIGHT: true };
 
 type Summary = { id: string; icon: string; name: string; value: string; type: RecordType };
 
@@ -81,11 +87,14 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
 
+  const { user } = useAuth();
   const { pets, selectedPetId, setSelectedPetId, selectedPet, isLoading: isPetsLoading } = usePet();
   const { getRecordsByDate, getRecordsByPet, getTodayRoutines, confirmRoutine, skipRoutine, isLoading: isRecordsLoading } = useRecords();
-  
+
   const [routinesModalVisible, setRoutinesModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [summaryPrefs, setSummaryPrefs] = useState<SummaryPrefs>(DEFAULT_PREFS);
+  const [summaryModalVisible, setSummaryModalVisible] = useState(false);
   const [editingRoutine, setEditingRoutine] = useState<{
     id: string;
     type: RecordType;
@@ -96,6 +105,26 @@ export default function HomeScreen() {
   
   const isLoading = isPetsLoading || isRecordsLoading;
   const isMemorialSelected = selectedPet?.status === "memorial";
+
+  // Cargar preferencias de resumen
+  const prefsKey = `${SUMMARY_PREFS_KEY}_${user?.id}`;
+  useEffect(() => {
+    if (!user) return;
+    AsyncStorage.getItem(prefsKey).then((raw) => {
+      if (raw) setSummaryPrefs({ ...DEFAULT_PREFS, ...JSON.parse(raw) });
+    });
+  }, [user, prefsKey]);
+
+  const toggleSummaryPref = useCallback(
+    (type: string) => {
+      setSummaryPrefs((prev) => {
+        const next = { ...prev, [type]: !prev[type] };
+        AsyncStorage.setItem(prefsKey, JSON.stringify(next));
+        return next;
+      });
+    },
+    [prefsKey]
+  );
   const todayRecords = getRecordsByDate(new Date(), selectedPetId);
   const todayRoutines = getTodayRoutines(selectedPetId);
   const pendingRoutines = todayRoutines.filter(r => r.status === "PENDING");
@@ -154,6 +183,11 @@ export default function HomeScreen() {
       },
     ];
   }, [todayRecords, getRecordsByPet, selectedPetId]);
+
+  const visibleSummary = useMemo(
+    () => summary.filter((s) => summaryPrefs[s.type] !== false),
+    [summary, summaryPrefs]
+  );
 
   const handleConfirmRoutine = (routineId: string, defaultValue?: string, routineTime?: string) => {
     if (isMemorialSelected) return;
@@ -337,9 +371,18 @@ export default function HomeScreen() {
       )}
 
       {/* Resumen del día */}
-      <Text style={[styles.sectionTitle, { color: t.textMuted, marginTop: 14 }]}>
-        RESUMEN DE HOY
-      </Text>
+      <View style={[styles.sectionHeader, { marginTop: 14 }]}>
+        <Text style={[styles.sectionTitle, { color: t.textMuted }]}>
+          RESUMEN DE HOY
+        </Text>
+        <AnimatedPressable
+          onPress={() => setSummaryModalVisible(true)}
+          hitSlop={10}
+          scale={0.9}
+        >
+          <Icon name="pencil" size={14} color={t.textMuted} />
+        </AnimatedPressable>
+      </View>
     </>
   );
 
@@ -405,7 +448,7 @@ export default function HomeScreen() {
           style={styles.container}
           contentContainerStyle={styles.contentContainer}
           ListHeaderComponent={ListHeaderComponent}
-          data={summary}
+          data={visibleSummary}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <AnimatedPressable
@@ -435,6 +478,11 @@ export default function HomeScreen() {
           ItemSeparatorComponent={() => (
             <View style={[styles.separator, { backgroundColor: t.border }]} />
           )}
+          ListEmptyComponent={
+            <Text style={[styles.summaryEmpty, { color: t.textMuted }]}>
+              No hay tarjetas visibles. Pulsa el lápiz para configurar.
+            </Text>
+          }
           ListFooterComponent={
             <>
               {isMemorialSelected && (
@@ -479,6 +527,61 @@ export default function HomeScreen() {
         mode="confirm"
         petName={selectedPet?.name}
       />
+
+      {/* Modal de personalizar resumen */}
+      <Modal
+        visible={summaryModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setSummaryModalVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setSummaryModalVisible(false)}
+        >
+          <Pressable
+            style={[styles.modalSheet, { backgroundColor: t.card }]}
+            onPress={() => {}}
+          >
+            <View style={styles.modalHandle} />
+            <Text style={[styles.modalTitle, { color: t.text }]}>
+              Personalizar resumen
+            </Text>
+            <Text style={[styles.modalDesc, { color: t.textMuted }]}>
+              Elige qué tarjetas ver en tu resumen diario.
+            </Text>
+
+            {(["FOOD", "POOP", "SLEEP", "WEIGHT"] as RecordType[]).map((type) => (
+              <View
+                key={type}
+                style={[styles.prefRow, { borderBottomColor: t.border }]}
+              >
+                <View style={styles.prefLeft}>
+                  <View style={[styles.iconCircle, { backgroundColor: t.accentSoft }]}>
+                    <Icon name={getIcon(type)} size={20} color={t.accent} />
+                  </View>
+                  <Text style={[styles.prefLabel, { color: t.text }]}>
+                    {prettyType(type)}
+                  </Text>
+                </View>
+                <Switch
+                  value={summaryPrefs[type] !== false}
+                  onValueChange={() => toggleSummaryPref(type)}
+                  trackColor={{ false: t.border, true: t.accent }}
+                  thumbColor="#fff"
+                />
+              </View>
+            ))}
+
+            <AnimatedPressable
+              onPress={() => setSummaryModalVisible(false)}
+              style={[styles.modalCloseBtn, { backgroundColor: t.accent }]}
+            >
+              <Text style={styles.modalCloseBtnText}>Listo</Text>
+            </AnimatedPressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -632,6 +735,7 @@ const styles = StyleSheet.create({
 
   memorialHint: { marginTop: 10, fontSize: 12, fontWeight: "600" },
   tip: { marginTop: 10, fontSize: 12, fontWeight: "600" },
+  summaryEmpty: { fontSize: 13, fontWeight: "500", textAlign: "center", paddingVertical: 20 },
 
   emptyContainer: {
     flex: 1,
@@ -668,6 +772,65 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   emptyBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+    paddingTop: 12,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#ccc",
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  modalDesc: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 20,
+  },
+  prefRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  prefLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  prefLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  modalCloseBtn: {
+    marginTop: 24,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalCloseBtnText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "800",
