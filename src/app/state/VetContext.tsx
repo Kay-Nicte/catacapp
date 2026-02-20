@@ -1,19 +1,32 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
+import { useHousehold } from './HouseholdContext';
 import { useNotifications } from './NotificationContext';
 import { usePet } from './PetContext';
+import {
+  addDocument,
+  updateDocument,
+  deleteDocument,
+  onCollectionSnapshot,
+  deleteDocumentsWhere,
+} from '../../services/firestore';
+import {
+  getNotificationId,
+  setNotificationId as saveNotifId,
+  removeNotificationId,
+} from '../../services/notificationMap';
+import type { FirestoreVetVisit } from '../../types/firestore';
 import i18n from '../../i18n';
 
 export interface VetVisit {
   id: string;
   petId: string;
   type: 'PAST' | 'UPCOMING';
-  date: string; // ISO string para serialización
+  date: string;
   veterinarian: string;
   reason: string;
   notes: string;
-  notificationId?: string; // ID de la notificación programada
+  notificationId?: string; // local-only, from notificationMap
 }
 
 interface VetContextType {
@@ -29,54 +42,67 @@ interface VetContextType {
 
 const VetContext = createContext<VetContextType | undefined>(undefined);
 
-const VET_STORAGE_KEY = '@catacapp_vet_visits';
-
 export function VetProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const { householdId, loading: householdLoading } = useHousehold();
   const { scheduleVetReminder, cancelNotification } = useNotifications();
   const { pets } = usePet();
   const [visits, setVisits] = useState<VetVisit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const storageKey = `${VET_STORAGE_KEY}_${user?.id}`;
-
-  // Cargar datos al iniciar / limpiar al cerrar sesión
+  // Subscribe to Firestore vet visits
   useEffect(() => {
-    if (user) {
-      loadData();
-    } else {
-      setVisits([]);
-      setIsLoading(true);
-    }
-  }, [user]);
-
-  // Guardar visits cuando cambien
-  useEffect(() => {
-    if (!isLoading && user) {
-      AsyncStorage.setItem(storageKey, JSON.stringify(visits));
-    }
-  }, [visits, isLoading, user]);
-
-  const loadData = async () => {
-    try {
-      const storedVisits = await AsyncStorage.getItem(storageKey);
-      if (storedVisits) {
-        setVisits(JSON.parse(storedVisits));
+    if (!user || !householdId || householdLoading) {
+      if (!user) {
+        setVisits([]);
       }
-    } catch (error) {
-      console.error('Error loading vet visits:', error);
-    } finally {
-      setIsLoading(false);
+      setIsLoading(!user ? true : householdLoading);
+      return;
     }
-  };
+
+    const unsub = onCollectionSnapshot<FirestoreVetVisit>(
+      householdId,
+      'vetVisits',
+      async (items) => {
+        // Hydrate with local notification IDs
+        const mapped: VetVisit[] = await Promise.all(
+          items.map(async (item) => {
+            const notifId = await getNotificationId(user.id, item.id);
+            return {
+              id: item.id,
+              petId: item.petId,
+              type: item.type,
+              date: item.date,
+              veterinarian: item.veterinarian,
+              reason: item.reason,
+              notes: item.notes,
+              notificationId: notifId ?? undefined,
+            };
+          })
+        );
+        setVisits(mapped);
+        setIsLoading(false);
+      }
+    );
+
+    return unsub;
+  }, [user?.id, householdId, householdLoading]);
 
   const addVisit = async (visit: Omit<VetVisit, 'id'>) => {
-    const newVisit: VetVisit = {
-      ...visit,
-      id: `v_${Date.now()}_${Math.random()}`,
+    if (!householdId || !user) return;
+
+    const data: FirestoreVetVisit = {
+      petId: visit.petId,
+      type: visit.type,
+      date: visit.date,
+      veterinarian: visit.veterinarian,
+      reason: visit.reason,
+      notes: visit.notes,
     };
 
-    // Programar notificación para citas futuras
+    const docId = await addDocument(householdId, 'vetVisits', data);
+
+    // Schedule local notification for upcoming visits
     if (visit.type === 'UPCOMING') {
       const pet = pets.find(p => p.id === visit.petId);
       const petName = pet?.name || i18n.t('common.yourPet');
@@ -86,25 +112,28 @@ export function VetProvider({ children }: { children: ReactNode }) {
         new Date(visit.date)
       );
       if (notificationId) {
-        newVisit.notificationId = notificationId;
+        await saveNotifId(user.id, docId, notificationId);
       }
     }
-
-    setVisits(prev => [newVisit, ...prev]);
   };
 
   const deleteVisit = async (id: string) => {
-    const visit = visits.find(v => v.id === id);
-    if (visit?.notificationId) {
-      await cancelNotification(visit.notificationId);
+    if (!householdId || !user) return;
+
+    // Cancel notification
+    const notifId = await getNotificationId(user.id, id);
+    if (notifId) {
+      await cancelNotification(notifId);
+      await removeNotificationId(user.id, id);
     }
-    setVisits(prev => prev.filter(v => v.id !== id));
+
+    await deleteDocument(householdId, 'vetVisits', id);
   };
 
   const updateVisit = (id: string, updates: Partial<Omit<VetVisit, 'id'>>) => {
-    setVisits(prev =>
-      prev.map(v => (v.id === id ? { ...v, ...updates } : v))
-    );
+    if (!householdId) return;
+    const { notificationId, ...firestoreUpdates } = updates as any;
+    updateDocument(householdId, 'vetVisits', id, firestoreUpdates);
   };
 
   const getVisitsByPet = (petId: string) => {
@@ -123,21 +152,24 @@ export function VetProvider({ children }: { children: ReactNode }) {
   };
 
   const markAsCompleted = (id: string) => {
-    setVisits(prev =>
-      prev.map(v =>
-        v.id === id ? { ...v, type: 'PAST' as const } : v
-      )
-    );
+    if (!householdId) return;
+    updateDocument(householdId, 'vetVisits', id, { type: 'PAST' });
   };
 
   const deleteByPet = async (petId: string) => {
+    if (!householdId || !user) return;
+
+    // Cancel notifications for this pet's visits
     const petVisits = visits.filter(v => v.petId === petId);
     for (const v of petVisits) {
-      if (v.notificationId) {
-        await cancelNotification(v.notificationId);
+      const notifId = await getNotificationId(user.id, v.id);
+      if (notifId) {
+        await cancelNotification(notifId);
+        await removeNotificationId(user.id, v.id);
       }
     }
-    setVisits(prev => prev.filter(v => v.petId !== petId));
+
+    await deleteDocumentsWhere(householdId, 'vetVisits', 'petId', petId);
   };
 
   return (

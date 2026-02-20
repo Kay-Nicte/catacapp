@@ -2,6 +2,15 @@ import React, { createContext, useContext, useState, useEffect, useRef, ReactNod
 import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
+import { useHousehold } from './HouseholdContext';
+import {
+  addDocument,
+  updateDocument,
+  deleteDocument,
+  onCollectionSnapshot,
+  deleteDocumentsWhere,
+} from '../../services/firestore';
+import type { FirestoreRecord, FirestoreRoutine } from '../../types/firestore';
 
 export type RecordType = 'FOOD' | 'POOP' | 'SLEEP' | 'WEIGHT' | 'NOTE';
 
@@ -11,7 +20,7 @@ export interface Record {
   type: RecordType;
   title: string;
   value: string;
-  timestamp: string; // ISO string para serialización
+  timestamp: string;
   source: 'MANUAL' | 'ROUTINE';
   routineId?: string;
   customTime?: string;
@@ -53,24 +62,22 @@ interface RecordsContextType {
 
 const RecordsContext = createContext<RecordsContextType | undefined>(undefined);
 
-const RECORDS_STORAGE_KEY = '@catacapp_records';
-const ROUTINES_STORAGE_KEY = '@catacapp_routines';
 const ROUTINE_STATUS_KEY = '@catacapp_routine_status';
 
 export function RecordsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const { householdId, loading: householdLoading } = useHousehold();
   const [records, setRecords] = useState<Record[]>([]);
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [dailyRoutineStatus, setDailyRoutineStatus] = useState<Map<string, 'PENDING' | 'DONE' | 'SKIPPED'>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
 
-  const recordsKey = `${RECORDS_STORAGE_KEY}_${user?.id}`;
-  const routinesKey = `${ROUTINES_STORAGE_KEY}_${user?.id}`;
   const statusKey = `${ROUTINE_STATUS_KEY}_${user?.id}`;
-
   const lastDateRef = useRef<string>(new Date().toDateString());
+  const recordsLoaded = useRef(false);
+  const routinesLoaded = useRef(false);
 
-  // Reset routine status when date changes (midnight or app foregrounded next day)
+  // Reset routine status when date changes
   useEffect(() => {
     const checkDateChange = () => {
       const today = new Date().toDateString();
@@ -84,7 +91,7 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
       if (state === 'active') checkDateChange();
     });
 
-    const interval = setInterval(checkDateChange, 60_000); // check every minute
+    const interval = setInterval(checkDateChange, 60_000);
 
     return () => {
       sub.remove();
@@ -92,33 +99,79 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Cargar datos al iniciar / limpiar al cerrar sesión
+  // Subscribe to Firestore records & routines
   useEffect(() => {
-    if (user) {
-      loadData();
-    } else {
-      setRecords([]);
-      setRoutines([]);
-      setDailyRoutineStatus(new Map());
-      setIsLoading(true);
+    if (!user || !householdId || householdLoading) {
+      if (!user) {
+        setRecords([]);
+        setRoutines([]);
+        setDailyRoutineStatus(new Map());
+      }
+      setIsLoading(!user ? true : householdLoading);
+      return;
     }
-  }, [user]);
 
-  // Guardar records cuando cambien
-  useEffect(() => {
-    if (!isLoading && user) {
-      AsyncStorage.setItem(recordsKey, JSON.stringify(records));
-    }
-  }, [records, isLoading, user]);
+    recordsLoaded.current = false;
+    routinesLoaded.current = false;
 
-  // Guardar routines cuando cambien
-  useEffect(() => {
-    if (!isLoading && user) {
-      AsyncStorage.setItem(routinesKey, JSON.stringify(routines));
-    }
-  }, [routines, isLoading, user]);
+    // Load routine status from local storage
+    AsyncStorage.getItem(statusKey).then((storedStatus) => {
+      if (storedStatus) {
+        const todaySuffix = `_${new Date().toDateString()}`;
+        const allEntries: [string, 'PENDING' | 'DONE' | 'SKIPPED'][] = Object.entries(JSON.parse(storedStatus)) as [string, 'PENDING' | 'DONE' | 'SKIPPED'][];
+        const todayEntries = allEntries.filter(([key]) => key.endsWith(todaySuffix));
+        setDailyRoutineStatus(new Map(todayEntries));
+      }
+    });
 
-  // Guardar routine status cuando cambie
+    const unsubRecords = onCollectionSnapshot<FirestoreRecord>(
+      householdId,
+      'records',
+      (items) => {
+        const mapped: Record[] = items.map((item) => ({
+          id: item.id,
+          petId: item.petId,
+          type: item.type,
+          title: item.title,
+          value: item.value,
+          timestamp: item.timestamp,
+          source: item.source,
+          routineId: item.routineId,
+          customTime: item.customTime,
+        }));
+        setRecords(mapped);
+        recordsLoaded.current = true;
+        if (routinesLoaded.current) setIsLoading(false);
+      }
+    );
+
+    const unsubRoutines = onCollectionSnapshot<FirestoreRoutine>(
+      householdId,
+      'routines',
+      (items) => {
+        const mapped: Routine[] = items.map((item) => ({
+          id: item.id,
+          petId: item.petId,
+          type: item.type,
+          title: item.title,
+          time: item.time,
+          defaultValue: item.defaultValue,
+          active: item.active,
+          days: item.days,
+        }));
+        setRoutines(mapped);
+        routinesLoaded.current = true;
+        if (recordsLoaded.current) setIsLoading(false);
+      }
+    );
+
+    return () => {
+      unsubRecords();
+      unsubRoutines();
+    };
+  }, [user?.id, householdId, householdLoading]);
+
+  // Persist routine status locally
   useEffect(() => {
     if (!isLoading && user) {
       const statusObj = Object.fromEntries(dailyRoutineStatus);
@@ -126,51 +179,25 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
     }
   }, [dailyRoutineStatus, isLoading, user]);
 
-  const loadData = async () => {
-    try {
-      const [storedRecords, storedRoutines, storedStatus] = await Promise.all([
-        AsyncStorage.getItem(recordsKey),
-        AsyncStorage.getItem(routinesKey),
-        AsyncStorage.getItem(statusKey),
-      ]);
-
-      if (storedRecords) {
-        setRecords(JSON.parse(storedRecords));
-      }
-      if (storedRoutines) {
-        setRoutines(JSON.parse(storedRoutines));
-      }
-      if (storedStatus) {
-        // Only keep today's entries on load
-        const todaySuffix = `_${new Date().toDateString()}`;
-        const allEntries: [string, string][] = Object.entries(JSON.parse(storedStatus));
-        const todayEntries = allEntries.filter(([key]) => key.endsWith(todaySuffix));
-        setDailyRoutineStatus(new Map(todayEntries));
-      }
-    } catch (error) {
-      console.error('Error loading records:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const addRecord = (record: Omit<Record, 'id' | 'timestamp'>) => {
-    const newRecord: Record = {
+    if (!householdId) return;
+
+    const data: FirestoreRecord = {
       ...record,
-      id: `r_${Date.now()}_${Math.random()}`,
       timestamp: new Date().toISOString(),
     };
-    setRecords(prev => [newRecord, ...prev]);
+
+    addDocument(householdId, 'records', data);
   };
 
   const deleteRecord = (id: string) => {
-    setRecords(prev => prev.filter(r => r.id !== id));
+    if (!householdId) return;
+    deleteDocument(householdId, 'records', id);
   };
 
   const updateRecord = (id: string, updates: Partial<Omit<Record, 'id' | 'timestamp'>>) => {
-    setRecords(prev =>
-      prev.map(r => (r.id === id ? { ...r, ...updates } : r))
-    );
+    if (!householdId) return;
+    updateDocument(householdId, 'records', id, updates);
   };
 
   const getRecordsByDate = (date: Date, petId: string): Record[] => {
@@ -237,26 +264,36 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
   };
 
   const addRoutine = (routine: Omit<Routine, 'id'>) => {
-    const newRoutine: Routine = {
-      ...routine,
-      id: `rt_${Date.now()}_${Math.random()}`,
+    if (!householdId) return;
+
+    const data: FirestoreRoutine = {
+      petId: routine.petId,
+      type: routine.type,
+      title: routine.title,
+      time: routine.time,
+      defaultValue: routine.defaultValue,
+      active: routine.active,
+      days: routine.days,
     };
-    setRoutines(prev => [...prev, newRoutine]);
+
+    addDocument(householdId, 'routines', data);
   };
 
   const deleteRoutine = (id: string) => {
-    setRoutines(prev => prev.filter(r => r.id !== id));
+    if (!householdId) return;
+    deleteDocument(householdId, 'routines', id);
   };
 
   const updateRoutine = (id: string, updates: Partial<Routine>) => {
-    setRoutines(prev =>
-      prev.map(r => (r.id === id ? { ...r, ...updates } : r))
-    );
+    if (!householdId) return;
+    const { id: _id, ...data } = updates as any;
+    updateDocument(householdId, 'routines', id, data);
   };
 
   const deleteByPet = (petId: string) => {
-    setRecords(prev => prev.filter(r => r.petId !== petId));
-    setRoutines(prev => prev.filter(r => r.petId !== petId));
+    if (!householdId) return;
+    deleteDocumentsWhere(householdId, 'records', 'petId', petId);
+    deleteDocumentsWhere(householdId, 'routines', 'petId', petId);
   };
 
   return (
