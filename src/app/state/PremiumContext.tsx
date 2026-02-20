@@ -27,6 +27,7 @@ interface PremiumContextType {
   isPremium: boolean;
   features: PremiumFeature[];
   subscribe: (plan: PremiumPlan) => Promise<{ success: boolean; error?: string }>;
+  redeemCode: (code: string) => Promise<{ success: boolean; error?: string }>;
   restore: () => Promise<{ success: boolean; error?: string }>;
   cancelSubscription: () => Promise<{ success: boolean; error?: string }>;
   checkFeatureAccess: (featureId: string) => boolean;
@@ -129,9 +130,51 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, [user, household, householdLoading]);
 
-  const subscribe = async (plan: PremiumPlan): Promise<{ success: boolean; error?: string }> => {
-    if (!user || !householdId) {
+  const redeemCode = async (code: string): Promise<{ success: boolean; error?: string }> => {
+    if (!user) {
       return { success: false, error: i18n.t('auth.errors.loginRequired') };
+    }
+
+    const trimmed = code.trim().toUpperCase();
+    if (trimmed !== 'CATACAPPVIP') {
+      return { success: false, error: i18n.t('premium.invalidCode') };
+    }
+
+    const premiumData: FirestorePremiumStatus = {
+      isPremium: true,
+      plan: 'lifetime',
+      purchasedAt: new Date().toISOString(),
+    };
+
+    if (householdId) {
+      try {
+        await updateHouseholdPremium(householdId, premiumData);
+      } catch {
+        // Firestore not available, apply locally
+        setStatus({
+          isPremium: true,
+          plan: 'lifetime',
+          purchasedAt: premiumData.purchasedAt,
+        });
+      }
+    } else {
+      // No household yet, apply locally
+      setStatus({
+        isPremium: true,
+        plan: 'lifetime',
+        purchasedAt: premiumData.purchasedAt,
+      });
+    }
+
+    return { success: true };
+  };
+
+  const subscribe = async (plan: PremiumPlan): Promise<{ success: boolean; error?: string }> => {
+    if (!user) {
+      return { success: false, error: i18n.t('auth.errors.loginRequired') };
+    }
+    if (!householdId) {
+      return { success: false, error: i18n.t('premium.setupError') };
     }
 
     try {
@@ -216,6 +259,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
         isPremium: status.isPremium,
         features: PREMIUM_FEATURES,
         subscribe,
+        redeemCode,
         restore,
         cancelSubscription,
         checkFeatureAccess,

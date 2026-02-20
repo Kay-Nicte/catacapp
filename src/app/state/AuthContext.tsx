@@ -204,6 +204,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Iniciar sesión con Google
       const signInResult = await GoogleSignin.signIn();
 
+      // v16+: cancel returns { type: 'cancelled' } instead of throwing
+      if (signInResult.type === 'cancelled') {
+        return { success: false, error: i18n.t('auth.errors.googleCancelled') };
+      }
+
       // Obtener el token de ID
       const idToken = signInResult.data?.idToken;
 
@@ -227,6 +232,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         message = i18n.t('auth.errors.googleInProgress');
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
         message = i18n.t('auth.errors.googlePlayNotAvailable');
+      } else {
+        // Show real error details for debugging
+        const code = error.code || 'unknown';
+        const msg = error.message || String(error);
+        message = `${i18n.t('auth.errors.googleError')}\n\n[${code}] ${msg}`;
       }
 
       console.error("Google Sign-In error:", error);

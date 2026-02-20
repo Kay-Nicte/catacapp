@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   ScrollView,
   Alert,
@@ -27,10 +28,12 @@ export default function PremiumScreen() {
   const { t: tr } = useTranslation();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const { isPremium, status, subscribe, restore } = usePremium();
+  const { isPremium, status, subscribe, redeemCode, restore } = usePremium();
 
   const [selectedPlan, setSelectedPlan] = useState<PremiumPlan>('yearly');
   const [isLoading, setIsLoading] = useState(false);
+  const [redeemInput, setRedeemInput] = useState('');
+  const [isRedeeming, setIsRedeeming] = useState(false);
 
   const handleSubscribe = async () => {
     if (isLoading) return;
@@ -47,6 +50,24 @@ export default function PremiumScreen() {
       );
     } else {
       Alert.alert(tr('common.error'), result.error || tr('premium.purchaseError'));
+    }
+  };
+
+  const handleRedeem = async () => {
+    if (isRedeeming || !redeemInput.trim()) return;
+
+    setIsRedeeming(true);
+    const result = await redeemCode(redeemInput);
+    setIsRedeeming(false);
+
+    if (result.success) {
+      Alert.alert(
+        tr('premium.welcomeTitle'),
+        tr('premium.welcomeMsg'),
+        [{ text: tr('premium.great'), onPress: () => navigation.goBack() }]
+      );
+    } else {
+      Alert.alert(tr('common.error'), result.error || tr('premium.invalidCode'));
     }
   };
 
@@ -294,6 +315,33 @@ export default function PremiumScreen() {
           )}
         </AnimatedPressable>
 
+        {/* Redeem Code */}
+        <View style={[styles.redeemSection, { borderColor: t.border }]}>
+          <Text style={[styles.redeemTitle, { color: t.text }]}>{tr('premium.redeemTitle')}</Text>
+          <View style={styles.redeemRow}>
+            <TextInput
+              value={redeemInput}
+              onChangeText={setRedeemInput}
+              placeholder={tr('premium.redeemPlaceholder')}
+              placeholderTextColor={t.textMuted}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              style={[styles.redeemInput, { color: t.text, borderColor: t.border, backgroundColor: t.card }]}
+            />
+            <AnimatedPressable
+              onPress={handleRedeem}
+              disabled={isRedeeming || !redeemInput.trim()}
+              style={[styles.redeemButton, { backgroundColor: t.accent, opacity: isRedeeming || !redeemInput.trim() ? 0.5 : 1 }]}
+            >
+              {isRedeeming ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.redeemButtonText}>{tr('premium.redeemButton')}</Text>
+              )}
+            </AnimatedPressable>
+          </View>
+        </View>
+
         {/* Restore */}
         <AnimatedPressable onPress={handleRestore} style={styles.restoreButton}>
           <Text style={[styles.restoreText, { color: t.textMuted }]}>
@@ -433,6 +481,43 @@ const styles = StyleSheet.create({
   subscribeButtonText: {
     color: '#fff',
     fontSize: 18,
+    fontWeight: '800',
+  },
+
+  redeemSection: {
+    marginTop: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+  },
+  redeemTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  redeemRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  redeemInput: {
+    flex: 1,
+    height: 46,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  redeemButton: {
+    height: 46,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  redeemButtonText: {
+    color: '#fff',
+    fontSize: 14,
     fontWeight: '800',
   },
 
