@@ -27,6 +27,7 @@ import { VetProvider } from "./src/app/state/VetContext";
 import { VaccinesProvider } from "./src/app/state/VaccinesContext";
 import { NotificationProvider } from "./src/app/state/NotificationContext";
 import { AdsProvider } from "./src/app/state/AdsContext";
+import { HouseholdProvider } from "./src/app/state/HouseholdContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -67,21 +68,23 @@ function Navigation() {
   return (
     <NavigationContainer>
       {isAuthenticated ? (
-        <PremiumProvider>
-          <AdsProvider>
-            <NotificationProvider>
-              <PetProvider>
-                <RecordsProvider>
-                  <VetProvider>
-                    <VaccinesProvider>
-                      <AppStack />
-                    </VaccinesProvider>
-                  </VetProvider>
-                </RecordsProvider>
-              </PetProvider>
-            </NotificationProvider>
-          </AdsProvider>
-        </PremiumProvider>
+        <HouseholdProvider>
+          <PremiumProvider>
+            <AdsProvider>
+              <NotificationProvider>
+                <PetProvider>
+                  <RecordsProvider>
+                    <VetProvider>
+                      <VaccinesProvider>
+                        <AppStack />
+                      </VaccinesProvider>
+                    </VetProvider>
+                  </RecordsProvider>
+                </PetProvider>
+              </NotificationProvider>
+            </AdsProvider>
+          </PremiumProvider>
+        </HouseholdProvider>
       ) : (
         <AuthStack />
       )}

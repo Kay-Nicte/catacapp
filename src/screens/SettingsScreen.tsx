@@ -30,7 +30,8 @@ import { usePet } from "../app/state/PetContext";
 import { useRecords } from "../app/state/RecordsContext";
 import { useVet } from "../app/state/VetContext";
 import { useVaccines } from "../app/state/VaccinesContext";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useHousehold } from "../app/state/HouseholdContext";
+import { deleteHouseholdData, addDocument } from "../services/firestore";
 import { useNavigation } from "@react-navigation/native";
 import { Icon } from "../components/ui/Icon";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
@@ -97,6 +98,7 @@ export default function SettingsScreen() {
   const { records, routines } = useRecords();
   const { visits } = useVet();
   const { vaccines } = useVaccines();
+  const { householdId } = useHousehold();
   const [privacyVisible, setPrivacyVisible] = useState(false);
 
   const themeModeLabel = (mode: ThemeMode) => {
@@ -335,22 +337,37 @@ export default function SettingsScreen() {
         return;
       }
 
-      const userId = user?.id;
-      if (!userId) return;
+      if (!householdId) return;
 
       // Cancelar todas las notificaciones existentes
       await cancelAllNotifications();
 
-      // Escribir datos en AsyncStorage
+      // Clear existing Firestore data
+      await deleteHouseholdData(householdId);
+
+      // Write backup data to Firestore
       const { pets: bPets, records: bRecords, routines: bRoutines, vetVisits: bVisits, vaccines: bVaccines } = backup.data;
 
-      await AsyncStorage.multiSet([
-        [`@catacapp_pets_${userId}`, JSON.stringify(bPets || [])],
-        [`@catacapp_records_${userId}`, JSON.stringify(bRecords || [])],
-        [`@catacapp_routines_${userId}`, JSON.stringify(bRoutines || [])],
-        [`@catacapp_vet_visits_${userId}`, JSON.stringify(bVisits || [])],
-        [`@catacapp_vaccines_${userId}`, JSON.stringify(bVaccines || [])],
-      ]);
+      for (const pet of (bPets || [])) {
+        const { id, ...data } = pet;
+        await addDocument(householdId, 'pets', data);
+      }
+      for (const record of (bRecords || [])) {
+        const { id, ...data } = record;
+        await addDocument(householdId, 'records', data);
+      }
+      for (const routine of (bRoutines || [])) {
+        const { id, ...data } = routine;
+        await addDocument(householdId, 'routines', data);
+      }
+      for (const visit of (bVisits || [])) {
+        const { id, notificationId, ...data } = visit;
+        await addDocument(householdId, 'vetVisits', data);
+      }
+      for (const vaccine of (bVaccines || [])) {
+        const { id, notificationId, ...data } = vaccine;
+        await addDocument(householdId, 'vaccines', data);
+      }
 
       Alert.alert(
         tr('settings.restoreSuccess'),
@@ -360,7 +377,7 @@ export default function SettingsScreen() {
           visits: bVisits?.length || 0,
           vaccines: bVaccines?.length || 0,
         }),
-        [{ text: tr('common.ok'), onPress: () => logout() }]
+        [{ text: tr('common.ok') }]
       );
     } catch (error) {
       console.error("Error restoring backup:", error);
@@ -370,6 +387,10 @@ export default function SettingsScreen() {
 
   const handleViewCharts = () => {
     (navigation as any).navigate("Charts");
+  };
+
+  const handleViewHousehold = () => {
+    (navigation as any).navigate("Household");
   };
 
   const handleClearData = () => {
@@ -383,29 +404,19 @@ export default function SettingsScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              const userId = user?.id;
-              if (!userId) return;
+              if (!householdId) return;
 
               // Cancelar todas las notificaciones programadas
               await cancelAllNotifications();
 
-              // Borrar todas las keys del usuario en AsyncStorage
-              const keys = [
-                `@catacapp_pets_${userId}`,
-                `@catacapp_records_${userId}`,
-                `@catacapp_routines_${userId}`,
-                `@catacapp_routine_status_${userId}`,
-                `@catacapp_vet_visits_${userId}`,
-                `@catacapp_vaccines_${userId}`,
-                `@catacapp_premium_${userId}`,
-              ];
-              await AsyncStorage.multiRemove(keys);
+              // Borrar todos los datos del household en Firestore
+              await deleteHouseholdData(householdId);
 
-              // Logout para reiniciar todos los contextos
+              // Aviso de éxito
               Alert.alert(
                 tr('settings.clearSuccess'),
                 tr('settings.clearSuccessMsg'),
-                [{ text: tr('common.ok'), onPress: () => logout() }]
+                [{ text: tr('common.ok') }]
               );
             } catch (error) {
               console.error("Error clearing data:", error);
@@ -730,6 +741,13 @@ export default function SettingsScreen() {
         {/* Más opciones */}
         <Text style={[styles.sectionTitle, { color: t.textMuted }]}>{tr('settings.moreOptions')}</Text>
         <View style={[styles.sectionCard, { backgroundColor: t.card, borderColor: t.border }]}>
+          <SettingRow
+            icon="home"
+            title={tr('household.title')}
+            subtitle={tr('household.settingsDesc')}
+            onPress={handleViewHousehold}
+          />
+          <View style={[styles.rowDivider, { backgroundColor: t.border }]} />
           <SettingRow
             icon="stats-chart"
             title={tr('settings.charts')}

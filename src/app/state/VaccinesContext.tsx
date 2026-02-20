@@ -1,18 +1,31 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
+import { useHousehold } from './HouseholdContext';
 import { useNotifications } from './NotificationContext';
 import { usePet } from './PetContext';
+import {
+  addDocument,
+  updateDocument,
+  deleteDocument,
+  onCollectionSnapshot,
+  deleteDocumentsWhere,
+} from '../../services/firestore';
+import {
+  getNotificationId,
+  setNotificationId as saveNotifId,
+  removeNotificationId,
+} from '../../services/notificationMap';
+import type { FirestoreVaccine } from '../../types/firestore';
 import i18n from '../../i18n';
 
 export interface Vaccine {
   id: string;
   petId: string;
   name: string;
-  date: string; // ISO string
-  nextDose?: string; // ISO string opcional
+  date: string;
+  nextDose?: string;
   notes?: string;
-  notificationId?: string; // ID de la notificación programada
+  notificationId?: string; // local-only, from notificationMap
 }
 
 interface VaccinesContextType {
@@ -27,54 +40,66 @@ interface VaccinesContextType {
 
 const VaccinesContext = createContext<VaccinesContextType | undefined>(undefined);
 
-const VACCINES_STORAGE_KEY = '@catacapp_vaccines';
-
 export function VaccinesProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const { householdId, loading: householdLoading } = useHousehold();
   const { scheduleVaccineReminder, cancelNotification } = useNotifications();
   const { pets } = usePet();
   const [vaccines, setVaccines] = useState<Vaccine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const notifMapLoaded = useRef(false);
 
-  const storageKey = `${VACCINES_STORAGE_KEY}_${user?.id}`;
-
-  // Cargar datos al iniciar / limpiar al cerrar sesión
+  // Subscribe to Firestore vaccines
   useEffect(() => {
-    if (user) {
-      loadData();
-    } else {
-      setVaccines([]);
-      setIsLoading(true);
-    }
-  }, [user]);
-
-  // Guardar vaccines cuando cambien
-  useEffect(() => {
-    if (!isLoading && user) {
-      AsyncStorage.setItem(storageKey, JSON.stringify(vaccines));
-    }
-  }, [vaccines, isLoading, user]);
-
-  const loadData = async () => {
-    try {
-      const storedVaccines = await AsyncStorage.getItem(storageKey);
-      if (storedVaccines) {
-        setVaccines(JSON.parse(storedVaccines));
+    if (!user || !householdId || householdLoading) {
+      if (!user) {
+        setVaccines([]);
       }
-    } catch (error) {
-      console.error('Error loading vaccines:', error);
-    } finally {
-      setIsLoading(false);
+      setIsLoading(!user ? true : householdLoading);
+      return;
     }
-  };
+
+    const unsub = onCollectionSnapshot<FirestoreVaccine>(
+      householdId,
+      'vaccines',
+      async (items) => {
+        // Hydrate with local notification IDs
+        const mapped: Vaccine[] = await Promise.all(
+          items.map(async (item) => {
+            const notifId = await getNotificationId(user.id, item.id);
+            return {
+              id: item.id,
+              petId: item.petId,
+              name: item.name,
+              date: item.date,
+              nextDose: item.nextDose,
+              notes: item.notes,
+              notificationId: notifId ?? undefined,
+            };
+          })
+        );
+        setVaccines(mapped);
+        setIsLoading(false);
+      }
+    );
+
+    return unsub;
+  }, [user?.id, householdId, householdLoading]);
 
   const addVaccine = async (vaccine: Omit<Vaccine, 'id' | 'notificationId'>) => {
-    const newVaccine: Vaccine = {
-      ...vaccine,
-      id: `vac_${Date.now()}_${Math.random()}`,
+    if (!householdId || !user) return;
+
+    const data: FirestoreVaccine = {
+      petId: vaccine.petId,
+      name: vaccine.name,
+      date: vaccine.date,
+      nextDose: vaccine.nextDose,
+      notes: vaccine.notes,
     };
 
-    // Programar notificación si hay próxima dosis
+    const docId = await addDocument(householdId, 'vaccines', data);
+
+    // Schedule local notification
     if (vaccine.nextDose) {
       const pet = pets.find(p => p.id === vaccine.petId);
       const petName = pet?.name || i18n.t('common.yourPet');
@@ -84,28 +109,31 @@ export function VaccinesProvider({ children }: { children: ReactNode }) {
         new Date(vaccine.nextDose)
       );
       if (notificationId) {
-        newVaccine.notificationId = notificationId;
+        await saveNotifId(user.id, docId, notificationId);
       }
     }
-
-    setVaccines(prev => [newVaccine, ...prev]);
   };
 
   const updateVaccine = async (id: string, updates: Partial<Omit<Vaccine, 'id' | 'notificationId'>>) => {
+    if (!householdId || !user) return;
+
     const existing = vaccines.find(v => v.id === id);
     if (!existing) return;
 
-    let newNotificationId = existing.notificationId;
+    // Update Firestore (exclude notificationId)
+    const { ...firestoreUpdates } = updates;
+    await updateDocument(householdId, 'vaccines', id, firestoreUpdates);
 
-    // Si cambia nextDose, reprogramar notificación
+    // Handle notification rescheduling
     if ('nextDose' in updates) {
-      // Cancelar notificación anterior
-      if (existing.notificationId) {
-        await cancelNotification(existing.notificationId);
-        newNotificationId = undefined;
+      // Cancel old notification
+      const oldNotifId = await getNotificationId(user.id, id);
+      if (oldNotifId) {
+        await cancelNotification(oldNotifId);
+        await removeNotificationId(user.id, id);
       }
 
-      // Programar nueva si hay próxima dosis
+      // Schedule new notification
       if (updates.nextDose) {
         const pet = pets.find(p => p.id === (updates.petId || existing.petId));
         const petName = pet?.name || i18n.t('common.yourPet');
@@ -116,22 +144,23 @@ export function VaccinesProvider({ children }: { children: ReactNode }) {
           new Date(updates.nextDose)
         );
         if (notifId) {
-          newNotificationId = notifId;
+          await saveNotifId(user.id, id, notifId);
         }
       }
     }
-
-    setVaccines(prev =>
-      prev.map(v => (v.id === id ? { ...v, ...updates, notificationId: newNotificationId } : v))
-    );
   };
 
   const deleteVaccine = async (id: string) => {
-    const vaccine = vaccines.find(v => v.id === id);
-    if (vaccine?.notificationId) {
-      await cancelNotification(vaccine.notificationId);
+    if (!householdId || !user) return;
+
+    // Cancel notification
+    const notifId = await getNotificationId(user.id, id);
+    if (notifId) {
+      await cancelNotification(notifId);
+      await removeNotificationId(user.id, id);
     }
-    setVaccines(prev => prev.filter(v => v.id !== id));
+
+    await deleteDocument(householdId, 'vaccines', id);
   };
 
   const getVaccinesByPet = (petId: string) => {
@@ -139,13 +168,19 @@ export function VaccinesProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteByPet = async (petId: string) => {
+    if (!householdId || !user) return;
+
+    // Cancel all notifications for this pet's vaccines
     const petVaccines = vaccines.filter(v => v.petId === petId);
     for (const v of petVaccines) {
-      if (v.notificationId) {
-        await cancelNotification(v.notificationId);
+      const notifId = await getNotificationId(user.id, v.id);
+      if (notifId) {
+        await cancelNotification(notifId);
+        await removeNotificationId(user.id, v.id);
       }
     }
-    setVaccines(prev => prev.filter(v => v.petId !== petId));
+
+    await deleteDocumentsWhere(householdId, 'vaccines', 'petId', petId);
   };
 
   return (

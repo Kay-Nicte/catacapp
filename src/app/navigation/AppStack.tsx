@@ -6,6 +6,7 @@ import { useTheme } from "../../theme/useTheme";
 import PetFormScreen from "../../screens/PetFormScreen";
 import PremiumScreen from "../../screens/PremiumScreen";
 import ChartsScreen from "../../screens/ChartsScreen";
+import HouseholdScreen from "../../screens/HouseholdScreen";
 import { TabsParamList } from "./AppTabs";
 import { NavigatorScreenParams } from "@react-navigation/native";
 
@@ -14,6 +15,7 @@ export type RootStackParamList = {
   PetForm: { petId?: string } | undefined;
   Premium: undefined;
   Charts: undefined;
+  Household: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -52,6 +54,16 @@ export default function AppStack() {
         component={ChartsScreen}
         options={{
           title: tr('nav.stats'),
+          headerStyle: { backgroundColor: t.bg },
+          headerTintColor: t.text,
+          headerShadowVisible: false,
+        }}
+      />
+      <Stack.Screen
+        name="Household"
+        component={HouseholdScreen}
+        options={{
+          title: tr('household.title'),
           headerStyle: { backgroundColor: t.bg },
           headerTintColor: t.text,
           headerShadowVisible: false,
