@@ -11,6 +11,8 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 import { Icon } from '../components/ui/Icon';
 import { AnimatedPressable } from '../components/ui/AnimatedPressable';
 import { useTheme } from '../theme/useTheme';
@@ -27,6 +29,7 @@ const GOOGLE_ICON = 'https://developers.google.com/identity/images/g-logo.png';
 
 export default function LoginScreen() {
   const t = useTheme();
+  const { t: tr } = useTranslation();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
   const { login, loginWithGoogle } = useAuth();
@@ -45,7 +48,7 @@ export default function LoginScreen() {
     setIsLoading(false);
 
     if (!result.success) {
-      Alert.alert('Error', result.error || 'No se pudo iniciar sesión');
+      Alert.alert(tr('common.error'), result.error || tr('auth.loginFailed'));
     }
   };
 
@@ -56,8 +59,8 @@ export default function LoginScreen() {
     const result = await loginWithGoogle();
     setIsGoogleLoading(false);
 
-    if (!result.success && result.error !== 'Inicio de sesión cancelado') {
-      Alert.alert('Error', result.error || 'No se pudo iniciar sesión con Google');
+    if (!result.success && result.error !== i18n.t('auth.errors.googleCancelled')) {
+      Alert.alert(tr('common.error'), result.error || tr('auth.googleFailed'));
     }
   };
 
@@ -81,19 +84,19 @@ export default function LoginScreen() {
           </View>
           <Text style={[styles.appName, { color: t.text }]}>CatacApp</Text>
           <Text style={[styles.tagline, { color: t.textMuted }]}>
-            Cuida de tus mascotas con amor
+            {tr('auth.tagline')}
           </Text>
         </View>
 
         {/* Form */}
         <View style={styles.formSection}>
-          <Text style={[styles.title, { color: t.text }]}>Iniciar sesión</Text>
+          <Text style={[styles.title, { color: t.text }]}>{tr('auth.loginTitle')}</Text>
           <Text style={[styles.subtitle, { color: t.textMuted }]}>
-            Accede a tu cuenta para sincronizar tus datos
+            {tr('auth.loginSubtitle')}
           </Text>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: t.textMuted }]}>EMAIL</Text>
+            <Text style={[styles.label, { color: t.textMuted }]}>{tr('auth.emailLabel')}</Text>
             <View style={[styles.inputWrapper, { borderColor: t.border, backgroundColor: t.card }]}>
               <Icon name="mail-outline" size={20} color={t.textMuted} />
               <TextInput
@@ -110,7 +113,7 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: t.textMuted }]}>CONTRASEÑA</Text>
+            <Text style={[styles.label, { color: t.textMuted }]}>{tr('auth.passwordLabel')}</Text>
             <View style={[styles.inputWrapper, { borderColor: t.border, backgroundColor: t.card }]}>
               <Icon name="lock-closed-outline" size={20} color={t.textMuted} />
               <TextInput
@@ -139,13 +142,13 @@ export default function LoginScreen() {
             {isLoading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Entrar</Text>
+              <Text style={styles.buttonText}>{tr('auth.loginButton')}</Text>
             )}
           </AnimatedPressable>
 
           <View style={styles.divider}>
             <View style={[styles.dividerLine, { backgroundColor: t.border }]} />
-            <Text style={[styles.dividerText, { color: t.textMuted }]}>o</Text>
+            <Text style={[styles.dividerText, { color: t.textMuted }]}>{tr('common.or')}</Text>
             <View style={[styles.dividerLine, { backgroundColor: t.border }]} />
           </View>
 
@@ -159,7 +162,7 @@ export default function LoginScreen() {
             ) : (
               <>
                 <Image source={{ uri: GOOGLE_ICON }} style={styles.googleIcon} />
-                <Text style={styles.googleButtonText}>Continuar con Google</Text>
+                <Text style={styles.googleButtonText}>{tr('auth.continueGoogle')}</Text>
               </>
             )}
           </Pressable>
@@ -168,7 +171,7 @@ export default function LoginScreen() {
             onPress={() => navigation.navigate('Register')}
             style={[styles.secondaryButton, { borderColor: t.border }]}
           >
-            <Text style={[styles.secondaryButtonText, { color: t.text }]}>Crear cuenta nueva</Text>
+            <Text style={[styles.secondaryButtonText, { color: t.text }]}>{tr('auth.createAccount')}</Text>
           </Pressable>
         </View>
       </ScrollView>

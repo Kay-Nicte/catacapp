@@ -4,6 +4,7 @@ import { SchedulableTriggerInputTypes } from "expo-notifications";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import i18n from "../../i18n";
 
 // Configurar cómo se muestran las notificaciones cuando la app está en primer plano
 Notifications.setNotificationHandler({
@@ -164,12 +165,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       return null;
     }
 
-    const daysLabel = daysBefore === 1 ? "Mañana" : `En ${daysBefore} días`;
+    const daysLabel = daysBefore === 1 ? i18n.t('notifications.tomorrow') : i18n.t('notifications.inDays', { count: daysBefore });
 
     const id = await Notifications.scheduleNotificationAsync({
       content: {
-        title: `Vacuna de ${petName}`,
-        body: `${daysLabel} toca la vacuna ${vaccineName}`,
+        title: i18n.t('notifications.vaccineTitle', { petName }),
+        body: i18n.t('notifications.vaccineBody', { daysLabel, vaccineName }),
         data: { type: "vaccine", petName, vaccineName },
         sound: true,
       },
@@ -200,12 +201,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       return null;
     }
 
-    const daysLabel = daysBefore === 1 ? "Mañana" : `En ${daysBefore} días`;
+    const daysLabel = daysBefore === 1 ? i18n.t('notifications.tomorrow') : i18n.t('notifications.inDays', { count: daysBefore });
 
     const id = await Notifications.scheduleNotificationAsync({
       content: {
-        title: `Cita veterinaria de ${petName}`,
-        body: `${daysLabel} tienes cita en ${clinicName}`,
+        title: i18n.t('notifications.vetTitle', { petName }),
+        body: i18n.t('notifications.vetBody', { daysLabel, clinicName }),
         data: { type: "vet", petName, clinicName },
         sound: true,
       },
@@ -227,8 +228,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     const id = await Notifications.scheduleNotificationAsync({
       content: {
-        title: "Rutinas de hoy",
-        body: "No olvides completar las rutinas de tus mascotas",
+        title: i18n.t('notifications.routineTitle'),
+        body: i18n.t('notifications.routineBody'),
         data: { type: "routine" },
         sound: true,
       },

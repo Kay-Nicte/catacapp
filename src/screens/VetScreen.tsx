@@ -7,6 +7,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { Icon } from "../components/ui/Icon";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
 import { shadows } from "../theme/tokens";
@@ -17,9 +18,11 @@ import { useVet, VetVisit } from "../app/state/VetContext";
 import { useAds } from "../app/state/AdsContext";
 import EditVetVisitModal from "../components/EditVetVisitModal";
 import { formatTime } from "../utils/format";
+import i18n, { getLocale } from "../i18n";
 
 export default function VetScreen() {
   const t = useTheme();
+  const { t: tr } = useTranslation();
   const insets = useSafeAreaInsets();
 
   const { selectedPet, selectedPetId } = usePet();
@@ -49,12 +52,12 @@ export default function VetScreen() {
     if (isMemorialSelected) return;
 
     Alert.alert(
-      "Eliminar visita",
-      "¿Estás seguro de que quieres eliminar esta visita?",
+      tr('vet.deleteVisit'),
+      tr('vet.deleteConfirm'),
       [
-        { text: "Cancelar", style: "cancel" },
+        { text: tr('common.cancel'), style: "cancel" },
         {
-          text: "Eliminar",
+          text: tr('common.delete'),
           style: "destructive",
           onPress: () => deleteVisit(id),
         },
@@ -129,7 +132,7 @@ export default function VetScreen() {
                 {visitDate.getDate()}
               </Text>
               <Text style={[styles.dateMonth, { color: t.accent }]}>
-                {visitDate.toLocaleString('es', { month: 'short' }).toUpperCase()}
+                {visitDate.toLocaleString(getLocale(), { month: 'short' }).toUpperCase()}
               </Text>
             </View>
 
@@ -192,7 +195,7 @@ export default function VetScreen() {
             <Icon name="paw" size={18} color="#fff" />
           </View>
           <View>
-            <Text style={[styles.headerTitle, { color: t.text }]}>Veterinario</Text>
+            <Text style={[styles.headerTitle, { color: t.text }]}>{tr('vet.title')}</Text>
             {selectedPet?.name && (
               <Text style={[styles.headerSubtitle, { color: t.textMuted }]}>
                 {selectedPet.name}
@@ -207,7 +210,7 @@ export default function VetScreen() {
         <>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: t.textMuted }]}>
-              PRÓXIMAS CITAS
+              {tr('vet.upcomingAppointments')}
             </Text>
             <View style={[styles.badge, { backgroundColor: t.accent }]}>
               <Text style={styles.badgeText}>{upcoming.length}</Text>
@@ -228,7 +231,7 @@ export default function VetScreen() {
       {/* Past Visits */}
       <View style={[styles.sectionHeader, { marginTop: upcoming.length > 0 ? 20 : 0 }]}>
         <Text style={[styles.sectionTitle, { color: t.textMuted }]}>
-          VISITAS REALIZADAS
+          {tr('vet.pastVisits')}
         </Text>
       </View>
 
@@ -242,12 +245,13 @@ export default function VetScreen() {
           <View style={styles.emptyContainer}>
             <Icon name="medkit-outline" size={48} color={t.textMuted} />
             <Text style={[styles.emptyText, { color: t.textMuted }]}>
-              No hay visitas registradas
+              {tr('vet.emptyTitle')}
             </Text>
             {!isMemorialSelected && (
               <Text style={[styles.emptyHint, { color: t.textMuted }]}>
-                Registra las citas de {selectedPet?.name || "tu mascota"} con el veterinario.{"\n"}
-                Pulsa + para añadir la primera.
+                {selectedPet?.name
+                  ? tr('vet.emptyHint', { petName: selectedPet.name })
+                  : tr('vet.emptyHintDefault')}
               </Text>
             )}
           </View>
@@ -256,7 +260,7 @@ export default function VetScreen() {
 
       {isMemorialSelected && (
         <Text style={[styles.memorialHint, { color: t.textMuted }]}>
-          Esta mascota está en modo recuerdo (solo lectura).
+          {tr('common.memorial')}
         </Text>
       )}
 

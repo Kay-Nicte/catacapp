@@ -11,6 +11,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native";
+import { useTranslation } from 'react-i18next';
 import { Icon } from "../components/ui/Icon";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
 import { shadows } from "../theme/tokens";
@@ -24,16 +25,6 @@ import { formatDateFull } from "../utils/format";
 
 const typeLabels: RecordType[] = ["FOOD", "POOP", "SLEEP", "WEIGHT", "NOTE"];
 
-function prettyType(t: RecordType) {
-  switch (t) {
-    case "FOOD": return "Comida";
-    case "POOP": return "Deposición";
-    case "SLEEP": return "Sueño";
-    case "WEIGHT": return "Peso";
-    case "NOTE": return "Nota";
-  }
-}
-
 function isSameDay(d1: Date, d2: Date): boolean {
   return (
     d1.getFullYear() === d2.getFullYear() &&
@@ -44,6 +35,7 @@ function isSameDay(d1: Date, d2: Date): boolean {
 
 export default function RecordsScreen() {
   const t = useTheme();
+  const { t: tr } = useTranslation();
   const insets = useSafeAreaInsets();
 
   const { selectedPet, selectedPetId } = usePet();
@@ -92,7 +84,7 @@ export default function RecordsScreen() {
     const value = newValue.trim();
 
     if (!title || !value) {
-      Alert.alert("Faltan datos", "Debes completar el título y el valor.");
+      Alert.alert(tr('records.missingData'), tr('records.missingDataMsg'));
       return;
     }
 
@@ -117,12 +109,12 @@ export default function RecordsScreen() {
     if (isMemorialSelected) return;
 
     Alert.alert(
-      "Eliminar registro",
-      "¿Estás seguro de que quieres eliminar este registro?",
+      tr('records.deleteTitle'),
+      tr('records.deleteMsg'),
       [
-        { text: "Cancelar", style: "cancel" },
+        { text: tr('common.cancel'), style: "cancel" },
         {
-          text: "Eliminar",
+          text: tr('common.delete'),
           style: "destructive",
           onPress: () => deleteRecord(id),
         },
@@ -194,7 +186,7 @@ export default function RecordsScreen() {
             <Icon name="paw" size={18} color="#fff" />
           </View>
           <View>
-            <Text style={[styles.headerTitle, { color: t.text }]}>Registros</Text>
+            <Text style={[styles.headerTitle, { color: t.text }]}>{tr('records.title')}</Text>
             {selectedPet?.name && (
               <Text style={[styles.headerSubtitle, { color: t.textMuted }]}>
                 {selectedPet.name}
@@ -220,7 +212,7 @@ export default function RecordsScreen() {
         >
           <Icon name="calendar" size={16} color={t.textMuted} />
           <Text style={[styles.dateText, { color: t.text }]}>
-            {isToday ? "Hoy" : formatDateFull(selectedDate)}
+            {isToday ? tr('records.today') : formatDateFull(selectedDate)}
           </Text>
         </AnimatedPressable>
 
@@ -260,7 +252,7 @@ export default function RecordsScreen() {
               { color: filterType === "ALL" ? t.accent : t.textMuted },
             ]}
           >
-            Todos ({recordsByType.ALL})
+            {tr('records.all')} ({recordsByType.ALL})
           </Text>
         </Pressable>
 
@@ -282,7 +274,7 @@ export default function RecordsScreen() {
                 { color: filterType === type ? t.accent : t.textMuted },
               ]}
             >
-              {prettyType(type)} ({recordsByType[type]})
+              {tr('common.recordTypeSingular.' + type)} ({recordsByType[type]})
             </Text>
           </Pressable>
         ))}
@@ -318,12 +310,12 @@ export default function RecordsScreen() {
                 <View style={styles.recordLeft}>
                   <View style={styles.recordHeader}>
                     <Text style={[styles.recordTitle, { color: t.text }]}>
-                      {prettyType(item.type)} · {item.title}
+                      {tr('common.recordTypeSingular.' + item.type)} · {item.title}
                     </Text>
                     {item.source === "ROUTINE" && (
                       <View style={[styles.sourceBadge, { backgroundColor: t.accentSoft }]}>
                         <Text style={[styles.sourceBadgeText, { color: t.accent }]}>
-                          Rutina
+                          {tr('records.routine')}
                         </Text>
                       </View>
                     )}
@@ -341,11 +333,11 @@ export default function RecordsScreen() {
             <View style={styles.emptyContainer}>
               <Icon name="document-text-outline" size={48} color={t.textMuted} />
               <Text style={[styles.emptyText, { color: t.textMuted }]}>
-                No hay registros para este día
+                {tr('records.emptyDay')}
               </Text>
               {!isMemorialSelected && (
                 <Text style={[styles.emptyHint, { color: t.textMuted }]}>
-                  Usa el botón + para añadir uno
+                  {tr('records.emptyHint')}
                 </Text>
               )}
             </View>
@@ -355,7 +347,7 @@ export default function RecordsScreen() {
 
       {isMemorialSelected && (
         <Text style={[styles.memorialHint, { color: t.textMuted }]}>
-          Esta mascota está en modo recuerdo (solo lectura).
+          {tr('home.memorialHint')}
         </Text>
       )}
 
@@ -385,10 +377,10 @@ export default function RecordsScreen() {
         >
           <View style={styles.modalHeader}>
             <View>
-              <Text style={[styles.modalTitle, { color: t.text }]}>Añadir registro</Text>
+              <Text style={[styles.modalTitle, { color: t.text }]}>{tr('records.addRecord')}</Text>
               {selectedPet?.name && (
                 <Text style={[styles.modalSubtitle, { color: t.textMuted }]}>
-                  para {selectedPet.name}
+                  {tr('records.forPet', { name: selectedPet.name })}
                 </Text>
               )}
             </View>
@@ -397,7 +389,7 @@ export default function RecordsScreen() {
             </AnimatedPressable>
           </View>
 
-          <Text style={[styles.label, { color: t.textMuted }]}>TIPO</Text>
+          <Text style={[styles.label, { color: t.textMuted }]}>{tr('records.typeLabel')}</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -423,27 +415,27 @@ export default function RecordsScreen() {
                       { color: active ? t.accent : t.textMuted },
                     ]}
                   >
-                    {prettyType(tp)}
+                    {tr('common.recordTypeSingular.' + tp)}
                   </Text>
                 </Pressable>
               );
             })}
           </ScrollView>
 
-          <Text style={[styles.label, { color: t.textMuted }]}>TÍTULO</Text>
+          <Text style={[styles.label, { color: t.textMuted }]}>{tr('records.titleLabel')}</Text>
           <TextInput
             value={newTitle}
             onChangeText={setNewTitle}
-            placeholder="Ej: Pienso, Siesta, Nota..."
+            placeholder={tr('records.titlePlaceholder')}
             placeholderTextColor={t.textMuted}
             style={[styles.input, { color: t.text, borderColor: t.border, backgroundColor: t.bg }]}
           />
 
-          <Text style={[styles.label, { color: t.textMuted }]}>VALOR</Text>
+          <Text style={[styles.label, { color: t.textMuted }]}>{tr('records.valueLabel')}</Text>
           <TextInput
             value={newValue}
             onChangeText={setNewValue}
-            placeholder="Ej: 150 g / 30 min / 4,2 kg"
+            placeholder={tr('records.valuePlaceholder')}
             placeholderTextColor={t.textMuted}
             style={[styles.input, { color: t.text, borderColor: t.border, backgroundColor: t.bg }]}
           />
@@ -453,14 +445,14 @@ export default function RecordsScreen() {
               onPress={() => setModalOpen(false)}
               style={[styles.btn, { backgroundColor: t.bg, borderColor: t.border }]}
             >
-              <Text style={{ color: t.textMuted, fontWeight: "700" }}>Cancelar</Text>
+              <Text style={{ color: t.textMuted, fontWeight: "700" }}>{tr('common.cancel')}</Text>
             </Pressable>
 
             <Pressable
               onPress={handleAddRecord}
               style={[styles.btn, { backgroundColor: t.accent, borderColor: "transparent" }]}
             >
-              <Text style={{ color: "#fff", fontWeight: "800" }}>Guardar</Text>
+              <Text style={{ color: "#fff", fontWeight: "800" }}>{tr('common.save')}</Text>
             </Pressable>
           </View>
         </View>

@@ -11,6 +11,8 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 import { Icon } from '../components/ui/Icon';
 import { AnimatedPressable } from '../components/ui/AnimatedPressable';
 import { useTheme } from '../theme/useTheme';
@@ -27,6 +29,7 @@ const GOOGLE_ICON = 'https://developers.google.com/identity/images/g-logo.png';
 
 export default function RegisterScreen() {
   const t = useTheme();
+  const { t: tr } = useTranslation();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
   const { register, loginWithGoogle } = useAuth();
@@ -43,7 +46,7 @@ export default function RegisterScreen() {
     if (isLoading) return;
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Las contraseñas no coinciden');
+      Alert.alert(tr('common.error'), tr('auth.passwordMismatch'));
       return;
     }
 
@@ -52,7 +55,7 @@ export default function RegisterScreen() {
     setIsLoading(false);
 
     if (!result.success) {
-      Alert.alert('Error', result.error || 'No se pudo crear la cuenta');
+      Alert.alert(tr('common.error'), result.error || tr('auth.registerFailed'));
     }
   };
 
@@ -63,8 +66,8 @@ export default function RegisterScreen() {
     const result = await loginWithGoogle();
     setIsGoogleLoading(false);
 
-    if (!result.success && result.error !== 'Inicio de sesión cancelado') {
-      Alert.alert('Error', result.error || 'No se pudo iniciar sesión con Google');
+    if (!result.success && result.error !== i18n.t('auth.errors.googleCancelled')) {
+      Alert.alert(tr('common.error'), result.error || tr('auth.googleFailed'));
     }
   };
 
@@ -94,19 +97,19 @@ export default function RegisterScreen() {
 
         {/* Form */}
         <View style={styles.formSection}>
-          <Text style={[styles.title, { color: t.text }]}>Crear cuenta</Text>
+          <Text style={[styles.title, { color: t.text }]}>{tr('auth.registerTitle')}</Text>
           <Text style={[styles.subtitle, { color: t.textMuted }]}>
-            Regístrate para guardar tus datos en la nube
+            {tr('auth.registerSubtitle')}
           </Text>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: t.textMuted }]}>NOMBRE</Text>
+            <Text style={[styles.label, { color: t.textMuted }]}>{tr('auth.nameLabel')}</Text>
             <View style={[styles.inputWrapper, { borderColor: t.border, backgroundColor: t.card }]}>
               <Icon name="person-outline" size={20} color={t.textMuted} />
               <TextInput
                 value={name}
                 onChangeText={setName}
-                placeholder="Tu nombre"
+                placeholder={tr('auth.namePlaceholder')}
                 placeholderTextColor={t.textMuted}
                 autoCapitalize="words"
                 style={[styles.input, { color: t.text }]}
@@ -115,7 +118,7 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: t.textMuted }]}>EMAIL</Text>
+            <Text style={[styles.label, { color: t.textMuted }]}>{tr('auth.emailLabel')}</Text>
             <View style={[styles.inputWrapper, { borderColor: t.border, backgroundColor: t.card }]}>
               <Icon name="mail-outline" size={20} color={t.textMuted} />
               <TextInput
@@ -132,13 +135,13 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: t.textMuted }]}>CONTRASEÑA</Text>
+            <Text style={[styles.label, { color: t.textMuted }]}>{tr('auth.passwordLabel')}</Text>
             <View style={[styles.inputWrapper, { borderColor: t.border, backgroundColor: t.card }]}>
               <Icon name="lock-closed-outline" size={20} color={t.textMuted} />
               <TextInput
                 value={password}
                 onChangeText={setPassword}
-                placeholder="Mínimo 6 caracteres"
+                placeholder={tr('auth.passwordPlaceholder')}
                 placeholderTextColor={t.textMuted}
                 secureTextEntry={!showPassword}
                 style={[styles.input, { color: t.text }]}
@@ -154,13 +157,13 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: t.textMuted }]}>CONFIRMAR CONTRASEÑA</Text>
+            <Text style={[styles.label, { color: t.textMuted }]}>{tr('auth.confirmPasswordLabel')}</Text>
             <View style={[styles.inputWrapper, { borderColor: t.border, backgroundColor: t.card }]}>
               <Icon name="lock-closed-outline" size={20} color={t.textMuted} />
               <TextInput
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
-                placeholder="Repite la contraseña"
+                placeholder={tr('auth.confirmPasswordPlaceholder')}
                 placeholderTextColor={t.textMuted}
                 secureTextEntry={!showPassword}
                 style={[styles.input, { color: t.text }]}
@@ -176,13 +179,13 @@ export default function RegisterScreen() {
             {isLoading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Crear cuenta</Text>
+              <Text style={styles.buttonText}>{tr('auth.registerButton')}</Text>
             )}
           </AnimatedPressable>
 
           <View style={styles.divider}>
             <View style={[styles.dividerLine, { backgroundColor: t.border }]} />
-            <Text style={[styles.dividerText, { color: t.textMuted }]}>o</Text>
+            <Text style={[styles.dividerText, { color: t.textMuted }]}>{tr('common.or')}</Text>
             <View style={[styles.dividerLine, { backgroundColor: t.border }]} />
           </View>
 
@@ -196,23 +199,23 @@ export default function RegisterScreen() {
             ) : (
               <>
                 <Image source={{ uri: GOOGLE_ICON }} style={styles.googleIcon} />
-                <Text style={styles.googleButtonText}>Continuar con Google</Text>
+                <Text style={styles.googleButtonText}>{tr('auth.continueGoogle')}</Text>
               </>
             )}
           </AnimatedPressable>
 
           <Text style={[styles.terms, { color: t.textMuted }]}>
-            Al crear una cuenta aceptas nuestros{' '}
-            <Text style={{ color: t.accent }}>Términos de servicio</Text> y{' '}
-            <Text style={{ color: t.accent }}>Política de privacidad</Text>
+            {tr('auth.termsText')}
+            <Text style={{ color: t.accent }}>{tr('auth.termsOfService')}</Text>{tr('auth.and')}
+            <Text style={{ color: t.accent }}>{tr('auth.privacyPolicy')}</Text>
           </Text>
 
           <View style={styles.loginPrompt}>
             <Text style={[styles.loginPromptText, { color: t.textMuted }]}>
-              ¿Ya tienes cuenta?{' '}
+              {tr('auth.alreadyHaveAccount')}
             </Text>
             <Pressable onPress={() => navigation.goBack()}>
-              <Text style={[styles.loginLink, { color: t.accent }]}>Inicia sesión</Text>
+              <Text style={[styles.loginLink, { color: t.accent }]}>{tr('auth.signIn')}</Text>
             </Pressable>
           </View>
         </View>

@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
+import { useTranslation } from 'react-i18next';
 import { useTheme } from "../theme/useTheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePet } from "../app/state/PetContext";
@@ -39,6 +40,7 @@ function isPastDue(dateString?: string): boolean {
 
 export default function VaccinesScreen() {
   const t = useTheme();
+  const { t: tr } = useTranslation();
   const insets = useSafeAreaInsets();
   const { selectedPet, selectedPetId } = usePet();
   const { incrementActionCount } = useAds();
@@ -112,10 +114,10 @@ export default function VaccinesScreen() {
 
   const handleDelete = (id: string) => {
     if (isMemorialSelected) return;
-    Alert.alert("Eliminar vacuna", "¿Estás seguro de que quieres eliminar este registro?", [
-      { text: "Cancelar", style: "cancel" },
+    Alert.alert(tr('vaccines.deleteTitle'), tr('vaccines.deleteMsg'), [
+      { text: tr('common.cancel'), style: "cancel" },
       {
-        text: "Eliminar",
+        text: tr('common.delete'),
         style: "destructive",
         onPress: () => deleteVaccine(id),
       },
@@ -126,7 +128,7 @@ export default function VaccinesScreen() {
     const name = formName.trim();
 
     if (!name) {
-      Alert.alert("Faltan datos", "Completa al menos el nombre de la vacuna.");
+      Alert.alert(tr('vaccines.missingData'), tr('vaccines.missingDataMsg'));
       return;
     }
 
@@ -136,8 +138,8 @@ export default function VaccinesScreen() {
       today.setHours(0, 0, 0, 0);
       if (formNextDose < today) {
         Alert.alert(
-          "Fecha inválida",
-          "La próxima dosis no puede ser una fecha pasada."
+          tr('vaccines.invalidDate'),
+          tr('vaccines.invalidDateMsg')
         );
         return;
       }
@@ -183,7 +185,7 @@ export default function VaccinesScreen() {
             <Icon name="paw" size={18} color="#fff" />
           </View>
           <View>
-            <Text style={[styles.headerTitle, { color: t.text }]}>Vacunas</Text>
+            <Text style={[styles.headerTitle, { color: t.text }]}>{tr('vaccines.title')}</Text>
             {selectedPet?.name && (
               <Text style={[styles.headerSubtitle, { color: t.textMuted }]}>
                 {selectedPet.name}
@@ -198,7 +200,7 @@ export default function VaccinesScreen() {
         <>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: t.textMuted }]}>
-              PRÓXIMOS RECORDATORIOS
+              {tr('vaccines.upcomingReminders')}
             </Text>
             <View style={[styles.badge, { backgroundColor: t.accent }]}>
               <Text style={styles.badgeText}>{upcomingVaccines.length}</Text>
@@ -228,7 +230,7 @@ export default function VaccinesScreen() {
                 <View style={styles.alertContent}>
                   <Text style={[styles.alertTitle, { color: t.text }]}>{vaccine.name}</Text>
                   <Text style={[styles.alertDate, { color: pastDue ? t.danger : t.textMuted }]}>
-                    {pastDue ? "Vencida: " : "Próxima: "}
+                    {pastDue ? tr('vaccines.expired') : tr('vaccines.upcoming')}
                     {formatDateLong(vaccine.nextDose!)}
                   </Text>
                 </View>
@@ -241,7 +243,7 @@ export default function VaccinesScreen() {
       {/* Lista de vacunas */}
       <View style={[styles.sectionHeader, { marginTop: upcomingVaccines.length > 0 ? 20 : 0 }]}>
         <Text style={[styles.sectionTitle, { color: t.textMuted }]}>
-          HISTORIAL DE VACUNACIÓN
+          {tr('vaccines.history')}
         </Text>
       </View>
 
@@ -272,11 +274,11 @@ export default function VaccinesScreen() {
             <View style={styles.vaccineInfo}>
               <Text style={[styles.vaccineName, { color: t.text }]}>{item.name}</Text>
               <Text style={[styles.vaccineDate, { color: t.textMuted }]}>
-                Aplicada: {formatDateLong(item.date)}
+                {tr('vaccines.applied')}{formatDateLong(item.date)}
               </Text>
               {item.nextDose && (
                 <Text style={[styles.vaccineNext, { color: t.textMuted }]}>
-                  Próxima dosis: {formatDateLong(item.nextDose)}
+                  {tr('vaccines.nextDose')}{formatDateLong(item.nextDose)}
                 </Text>
               )}
               {item.notes && (
@@ -293,12 +295,11 @@ export default function VaccinesScreen() {
           <View style={styles.emptyContainer}>
             <Icon name="shield-checkmark" size={48} color={t.textMuted} />
             <Text style={[styles.emptyText, { color: t.textMuted }]}>
-              No hay vacunas registradas
+              {tr('vaccines.emptyTitle')}
             </Text>
             {!isMemorialSelected && (
               <Text style={[styles.emptyHint, { color: t.textMuted }]}>
-                Lleva un control de las vacunas de {selectedPet?.name || "tu mascota"}.{"\n"}
-                Pulsa + para registrar la primera.
+                {tr('vaccines.emptyHint', { name: selectedPet?.name || '' })}
               </Text>
             )}
           </View>
@@ -307,7 +308,7 @@ export default function VaccinesScreen() {
 
       {isMemorialSelected && (
         <Text style={[styles.memorialHint, { color: t.textMuted }]}>
-          Esta mascota está en modo recuerdo (solo lectura).
+          {tr('home.memorialHint')}
         </Text>
       )}
 
@@ -335,11 +336,11 @@ export default function VaccinesScreen() {
           <View style={styles.modalHeader}>
             <View>
               <Text style={[styles.modalTitle, { color: t.text }]}>
-                {editingVaccine ? "Editar vacuna" : "Nueva vacuna"}
+                {editingVaccine ? tr('vaccines.editVaccine') : tr('vaccines.newVaccine')}
               </Text>
               {selectedPet?.name && (
                 <Text style={[styles.modalSubtitle, { color: t.textMuted }]}>
-                  para {selectedPet.name}
+                  {tr('vaccines.forPet', { name: selectedPet.name })}
                 </Text>
               )}
             </View>
@@ -349,16 +350,16 @@ export default function VaccinesScreen() {
           </View>
 
           <ScrollView style={styles.scrollContent}>
-            <Text style={[styles.label, { color: t.textMuted }]}>NOMBRE DE LA VACUNA *</Text>
+            <Text style={[styles.label, { color: t.textMuted }]}>{tr('vaccines.nameLabel')}</Text>
             <TextInput
               value={formName}
               onChangeText={setFormName}
-              placeholder="Ej: Trivalente, Rabia, Moquillo..."
+              placeholder={tr('vaccines.namePlaceholder')}
               placeholderTextColor={t.textMuted}
               style={[styles.input, { color: t.text, borderColor: t.border, backgroundColor: t.bg }]}
             />
 
-            <Text style={[styles.label, { color: t.textMuted }]}>FECHA DE APLICACIÓN *</Text>
+            <Text style={[styles.label, { color: t.textMuted }]}>{tr('vaccines.dateLabel')}</Text>
             <AnimatedPressable
               onPress={() => setShowDatePicker(true)}
               style={[styles.input, styles.dateInput, { borderColor: t.border, backgroundColor: t.bg }]}
@@ -377,14 +378,14 @@ export default function VaccinesScreen() {
               />
             )}
 
-            <Text style={[styles.label, { color: t.textMuted }]}>PRÓXIMA DOSIS (opcional)</Text>
+            <Text style={[styles.label, { color: t.textMuted }]}>{tr('vaccines.nextDoseLabel')}</Text>
             <AnimatedPressable
               onPress={() => setShowNextDosePicker(true)}
               style={[styles.input, styles.dateInput, { borderColor: t.border, backgroundColor: t.bg }]}
             >
               <Icon name="calendar-outline" size={20} color={t.textMuted} />
               <Text style={[styles.dateText, { color: formNextDose ? t.text : t.textMuted }]}>
-                {formNextDose ? formatDateShort(formNextDose) : "Sin fecha"}
+                {formNextDose ? formatDateShort(formNextDose) : tr('vaccines.noDate')}
               </Text>
               {formNextDose && (
                 <AnimatedPressable onPress={() => setFormNextDose(null)} hitSlop={8}>
@@ -401,11 +402,11 @@ export default function VaccinesScreen() {
               />
             )}
 
-            <Text style={[styles.label, { color: t.textMuted }]}>NOTAS (opcional)</Text>
+            <Text style={[styles.label, { color: t.textMuted }]}>{tr('vaccines.notesLabel')}</Text>
             <TextInput
               value={formNotes}
               onChangeText={setFormNotes}
-              placeholder="Observaciones, lote, veterinario..."
+              placeholder={tr('vaccines.notesPlaceholder')}
               placeholderTextColor={t.textMuted}
               multiline
               numberOfLines={3}
@@ -421,14 +422,14 @@ export default function VaccinesScreen() {
               onPress={() => setModalOpen(false)}
               style={[styles.btn, { backgroundColor: t.bg, borderColor: t.border }]}
             >
-              <Text style={{ color: t.textMuted, fontWeight: "700" }}>Cancelar</Text>
+              <Text style={{ color: t.textMuted, fontWeight: "700" }}>{tr('common.cancel')}</Text>
             </AnimatedPressable>
 
             <AnimatedPressable
               onPress={handleSave}
               style={[styles.btn, { backgroundColor: t.accent, borderColor: "transparent" }]}
             >
-              <Text style={{ color: "#fff", fontWeight: "800" }}>Guardar</Text>
+              <Text style={{ color: "#fff", fontWeight: "800" }}>{tr('common.save')}</Text>
             </AnimatedPressable>
           </View>
         </View>

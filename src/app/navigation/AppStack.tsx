@@ -1,5 +1,6 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useTranslation } from "react-i18next";
 import AppTabs from "./AppTabs";
 import { useTheme } from "../../theme/useTheme";
 import PetFormScreen from "../../screens/PetFormScreen";
@@ -19,6 +20,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppStack() {
   const t = useTheme();
+  const { t: tr } = useTranslation();
 
   return (
     <Stack.Navigator>
@@ -31,7 +33,7 @@ export default function AppStack() {
         name="PetForm"
         component={PetFormScreen}
         options={{
-          title: "Mascota",
+          title: tr('nav.pet'),
           headerStyle: { backgroundColor: t.card },
           headerTintColor: t.text,
           headerShadowVisible: false,
@@ -49,7 +51,7 @@ export default function AppStack() {
         name="Charts"
         component={ChartsScreen}
         options={{
-          title: "Estadísticas",
+          title: tr('nav.stats'),
           headerStyle: { backgroundColor: t.bg },
           headerTintColor: t.text,
           headerShadowVisible: false,

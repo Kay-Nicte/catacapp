@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
+import i18n from "../../i18n";
 
 // ⚠️ IMPORTANTE: Reemplaza esto con tu Web Client ID de Firebase Console
 // Lo encuentras en: Firebase Console → Configuración → Tus apps → Configuración del SDK
@@ -87,32 +88,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const normalizedEmail = email.toLowerCase().trim();
 
       if (!normalizedEmail || !password) {
-        return { success: false, error: "Completa todos los campos" };
+        return { success: false, error: i18n.t('auth.errors.fillAllFields') };
       }
 
       await auth().signInWithEmailAndPassword(normalizedEmail, password);
       return { success: true };
     } catch (error: any) {
-      let message = "Error al iniciar sesión";
+      let message = i18n.t('auth.errors.loginError');
 
       switch (error.code) {
         case "auth/invalid-email":
-          message = "Email no válido";
+          message = i18n.t('auth.errors.invalidEmail');
           break;
         case "auth/user-disabled":
-          message = "Esta cuenta ha sido deshabilitada";
+          message = i18n.t('auth.errors.accountDisabled');
           break;
         case "auth/user-not-found":
-          message = "No existe una cuenta con este email";
+          message = i18n.t('auth.errors.noAccount');
           break;
         case "auth/wrong-password":
-          message = "Contraseña incorrecta";
+          message = i18n.t('auth.errors.wrongPassword');
           break;
         case "auth/invalid-credential":
-          message = "Email o contraseña incorrectos";
+          message = i18n.t('auth.errors.invalidCredentials');
           break;
         case "auth/too-many-requests":
-          message = "Demasiados intentos. Espera unos minutos";
+          message = i18n.t('auth.errors.tooManyAttempts');
           break;
       }
 
@@ -130,17 +131,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const trimmedName = name.trim();
 
       if (!normalizedEmail || !password || !trimmedName) {
-        return { success: false, error: "Completa todos los campos" };
+        return { success: false, error: i18n.t('auth.errors.fillAllFields') };
       }
 
       if (!normalizedEmail.includes("@")) {
-        return { success: false, error: "Email no válido" };
+        return { success: false, error: i18n.t('auth.errors.invalidEmail') };
       }
 
       if (password.length < 6) {
         return {
           success: false,
-          error: "La contraseña debe tener al menos 6 caracteres",
+          error: i18n.t('auth.errors.passwordMinLength'),
         };
       }
 
@@ -160,17 +161,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return { success: true };
     } catch (error: any) {
-      let message = "Error al crear la cuenta";
+      let message = i18n.t('auth.errors.registerError');
 
       switch (error.code) {
         case "auth/email-already-in-use":
-          message = "Ya existe una cuenta con este email";
+          message = i18n.t('auth.errors.emailInUse');
           break;
         case "auth/invalid-email":
-          message = "Email no válido";
+          message = i18n.t('auth.errors.invalidEmail');
           break;
         case "auth/weak-password":
-          message = "La contraseña es demasiado débil";
+          message = i18n.t('auth.errors.weakPassword');
           break;
       }
 
@@ -193,7 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const idToken = signInResult.data?.idToken;
 
       if (!idToken) {
-        return { success: false, error: "No se pudo obtener el token de Google" };
+        return { success: false, error: i18n.t('auth.errors.googleTokenError') };
       }
 
       // Crear credencial de Firebase con el token
@@ -204,14 +205,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return { success: true };
     } catch (error: any) {
-      let message = "Error al iniciar sesión con Google";
+      let message = i18n.t('auth.errors.googleError');
 
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        message = "Inicio de sesión cancelado";
+        message = i18n.t('auth.errors.googleCancelled');
       } else if (error.code === statusCodes.IN_PROGRESS) {
-        message = "Inicio de sesión en progreso";
+        message = i18n.t('auth.errors.googleInProgress');
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        message = "Google Play Services no disponible";
+        message = i18n.t('auth.errors.googlePlayNotAvailable');
       }
 
       console.error("Google Sign-In error:", error);
@@ -275,20 +276,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const normalizedEmail = email.toLowerCase().trim();
 
       if (!normalizedEmail) {
-        return { success: false, error: "Ingresa tu email" };
+        return { success: false, error: i18n.t('auth.errors.enterEmail') };
       }
 
       await auth().sendPasswordResetEmail(normalizedEmail);
       return { success: true };
     } catch (error: any) {
-      let message = "Error al enviar el correo";
+      let message = i18n.t('auth.errors.resetError');
 
       switch (error.code) {
         case "auth/invalid-email":
-          message = "Email no válido";
+          message = i18n.t('auth.errors.invalidEmail');
           break;
         case "auth/user-not-found":
-          message = "No existe una cuenta con este email";
+          message = i18n.t('auth.errors.noAccount');
           break;
       }
 

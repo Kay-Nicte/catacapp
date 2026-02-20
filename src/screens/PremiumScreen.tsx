@@ -19,9 +19,12 @@ import {
   PREMIUM_PRICES,
   PremiumPlan,
 } from '../app/state/PremiumContext';
+import { useTranslation } from 'react-i18next';
+import i18n, { getLocale } from '../i18n';
 
 export default function PremiumScreen() {
   const t = useTheme();
+  const { t: tr } = useTranslation();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { isPremium, status, subscribe, restore } = usePremium();
@@ -38,12 +41,12 @@ export default function PremiumScreen() {
 
     if (result.success) {
       Alert.alert(
-        '¡Bienvenido a Premium!',
-        'Ahora tienes acceso a todas las funcionalidades.',
-        [{ text: 'Genial', onPress: () => navigation.goBack() }]
+        tr('premium.welcomeTitle'),
+        tr('premium.welcomeMsg'),
+        [{ text: tr('premium.great'), onPress: () => navigation.goBack() }]
       );
     } else {
-      Alert.alert('Error', result.error || 'No se pudo completar la compra');
+      Alert.alert(tr('common.error'), result.error || tr('premium.purchaseError'));
     }
   };
 
@@ -53,9 +56,9 @@ export default function PremiumScreen() {
     setIsLoading(false);
 
     if (result.success) {
-      Alert.alert('Compras restauradas', 'Tu suscripción ha sido restaurada.');
+      Alert.alert(tr('premium.restored'), tr('premium.restoredMsg'));
     } else {
-      Alert.alert('Sin compras', result.error || 'No se encontraron compras anteriores');
+      Alert.alert(tr('premium.noPurchases'), result.error || tr('premium.noPurchasesMsg'));
     }
   };
 
@@ -72,25 +75,25 @@ export default function PremiumScreen() {
           <View style={[styles.premiumBadge, { backgroundColor: t.accent }, shadows.lg]}>
             <Icon name="diamond" size={48} color="#fff" />
           </View>
-          <Text style={[styles.premiumTitle, { color: t.text }]}>¡Eres Premium!</Text>
+          <Text style={[styles.premiumTitle, { color: t.text }]}>{tr('premium.youArePremium')}</Text>
           <Text style={[styles.premiumSubtitle, { color: t.textMuted }]}>
-            Disfrutas de todas las funcionalidades
+            {tr('premium.enjoyAll')}
           </Text>
 
           <View style={[styles.planInfo, { backgroundColor: t.card, borderColor: t.border }, shadows.md]}>
-            <Text style={[styles.planInfoLabel, { color: t.textMuted }]}>Tu plan</Text>
+            <Text style={[styles.planInfoLabel, { color: t.textMuted }]}>{tr('premium.yourPlan')}</Text>
             <Text style={[styles.planInfoValue, { color: t.text }]}>
-              {status.plan === 'monthly' && 'Mensual'}
-              {status.plan === 'yearly' && 'Anual'}
-              {status.plan === 'lifetime' && 'De por vida'}
+              {status.plan === 'monthly' && tr('premium.planMonthly')}
+              {status.plan === 'yearly' && tr('premium.planYearly')}
+              {status.plan === 'lifetime' && tr('premium.planLifetime')}
             </Text>
             {status.expiresAt && (
               <>
                 <Text style={[styles.planInfoLabel, { color: t.textMuted, marginTop: 12 }]}>
-                  Válido hasta
+                  {tr('premium.validUntil')}
                 </Text>
                 <Text style={[styles.planInfoValue, { color: t.text }]}>
-                  {new Date(status.expiresAt).toLocaleDateString('es-ES', {
+                  {new Date(status.expiresAt).toLocaleDateString(getLocale(), {
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric',
@@ -125,9 +128,9 @@ export default function PremiumScreen() {
           <View style={[styles.heroBadge, { backgroundColor: t.accent }, shadows.lg]}>
             <Icon name="diamond" size={40} color="#fff" />
           </View>
-          <Text style={[styles.heroTitle, { color: t.text }]}>CatacApp Premium</Text>
+          <Text style={[styles.heroTitle, { color: t.text }]}>{tr('premium.title')}</Text>
           <Text style={[styles.heroSubtitle, { color: t.textMuted }]}>
-            Desbloquea todo el potencial para cuidar de tus mascotas
+            {tr('premium.subtitle')}
           </Text>
         </View>
 
@@ -142,9 +145,9 @@ export default function PremiumScreen() {
                 <Icon name={feature.icon as any} size={22} color={t.accent} />
               </View>
               <View style={styles.featureContent}>
-                <Text style={[styles.featureName, { color: t.text }]}>{feature.name}</Text>
+                <Text style={[styles.featureName, { color: t.text }]}>{tr(`premium.features.${feature.id}.name`)}</Text>
                 <Text style={[styles.featureDesc, { color: t.textMuted }]}>
-                  {feature.description}
+                  {tr(`premium.features.${feature.id}.desc`)}
                 </Text>
               </View>
             </View>
@@ -152,7 +155,7 @@ export default function PremiumScreen() {
         </View>
 
         {/* Plans */}
-        <Text style={[styles.plansTitle, { color: t.text }]}>Elige tu plan</Text>
+        <Text style={[styles.plansTitle, { color: t.text }]}>{tr('premium.choosePlan')}</Text>
 
         <AnimatedPressable
           onPress={() => setSelectedPlan('yearly')}
@@ -168,7 +171,7 @@ export default function PremiumScreen() {
         >
           {PREMIUM_PRICES.yearly.savings && (
             <View style={[styles.savingsBadge, { backgroundColor: t.accent }]}>
-              <Text style={styles.savingsText}>Ahorra {PREMIUM_PRICES.yearly.savings}</Text>
+              <Text style={styles.savingsText}>{tr('premium.save', { amount: PREMIUM_PRICES.yearly.savings })}</Text>
             </View>
           )}
           <View style={styles.planHeader}>
@@ -185,16 +188,16 @@ export default function PremiumScreen() {
               </View>
             </View>
             <View style={styles.planDetails}>
-              <Text style={[styles.planName, { color: t.text }]}>Anual</Text>
+              <Text style={[styles.planName, { color: t.text }]}>{tr('premium.planYearly')}</Text>
               <Text style={[styles.planPeriod, { color: t.textMuted }]}>
-                Facturado anualmente
+                {tr('premium.billedYearly')}
               </Text>
             </View>
             <View style={styles.planPricing}>
               <Text style={[styles.planPrice, { color: t.text }]}>
                 {PREMIUM_PRICES.yearly.price}€
               </Text>
-              <Text style={[styles.planPriceUnit, { color: t.textMuted }]}>/año</Text>
+              <Text style={[styles.planPriceUnit, { color: t.textMuted }]}>{tr('premium.perYear')}</Text>
             </View>
           </View>
         </AnimatedPressable>
@@ -225,16 +228,16 @@ export default function PremiumScreen() {
               </View>
             </View>
             <View style={styles.planDetails}>
-              <Text style={[styles.planName, { color: t.text }]}>Mensual</Text>
+              <Text style={[styles.planName, { color: t.text }]}>{tr('premium.planMonthly')}</Text>
               <Text style={[styles.planPeriod, { color: t.textMuted }]}>
-                Cancela cuando quieras
+                {tr('premium.cancelAnytime')}
               </Text>
             </View>
             <View style={styles.planPricing}>
               <Text style={[styles.planPrice, { color: t.text }]}>
                 {PREMIUM_PRICES.monthly.price}€
               </Text>
-              <Text style={[styles.planPriceUnit, { color: t.textMuted }]}>/mes</Text>
+              <Text style={[styles.planPriceUnit, { color: t.textMuted }]}>{tr('premium.perMonth')}</Text>
             </View>
           </View>
         </AnimatedPressable>
@@ -265,9 +268,9 @@ export default function PremiumScreen() {
               </View>
             </View>
             <View style={styles.planDetails}>
-              <Text style={[styles.planName, { color: t.text }]}>De por vida</Text>
+              <Text style={[styles.planName, { color: t.text }]}>{tr('premium.planLifetime')}</Text>
               <Text style={[styles.planPeriod, { color: t.textMuted }]}>
-                Pago único, acceso eterno
+                {tr('premium.oneTimePayment')}
               </Text>
             </View>
             <View style={styles.planPricing}>
@@ -287,21 +290,20 @@ export default function PremiumScreen() {
           {isLoading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.subscribeButtonText}>Suscribirse ahora</Text>
+            <Text style={styles.subscribeButtonText}>{tr('premium.subscribe')}</Text>
           )}
         </AnimatedPressable>
 
         {/* Restore */}
         <AnimatedPressable onPress={handleRestore} style={styles.restoreButton}>
           <Text style={[styles.restoreText, { color: t.textMuted }]}>
-            Restaurar compras anteriores
+            {tr('premium.restore')}
           </Text>
         </AnimatedPressable>
 
         {/* Terms */}
         <Text style={[styles.terms, { color: t.textMuted }]}>
-          La suscripción se renovará automáticamente. Puedes cancelarla en cualquier momento
-          desde la configuración de tu cuenta de Google Play.
+          {tr('premium.terms')}
         </Text>
       </ScrollView>
     </View>

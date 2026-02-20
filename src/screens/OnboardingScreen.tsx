@@ -9,6 +9,7 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/useTheme';
 import { useOnboarding } from '../app/state/OnboardingContext';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -23,34 +24,35 @@ interface Slide {
   subtitle: string;
 }
 
-const slides: Slide[] = [
-  {
-    id: '1',
-    icon: '🐾',
-    title: 'Bienvenido a CatacApp',
-    subtitle: 'Gestiona la vida de tus mascotas de forma sencilla',
-  },
-  {
-    id: '2',
-    icon: '📋',
-    title: 'Registra todo',
-    subtitle: 'Comidas, vacunas, visitas al veterinario y mucho mas',
-  },
-  {
-    id: '3',
-    icon: '🚀',
-    title: '¡Comienza ahora!',
-    subtitle: 'Crea tu cuenta y empieza a cuidar mejor de tus mascotas',
-  },
-];
-
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Onboarding'>;
 };
 
 export default function OnboardingScreen({ navigation }: Props) {
   const t = useTheme();
+  const { t: tr } = useTranslation();
   const { completeOnboarding } = useOnboarding();
+
+  const slides: Slide[] = [
+    {
+      id: '1',
+      icon: '🐾',
+      title: tr('onboarding.slide1Title'),
+      subtitle: tr('onboarding.slide1Subtitle'),
+    },
+    {
+      id: '2',
+      icon: '📋',
+      title: tr('onboarding.slide2Title'),
+      subtitle: tr('onboarding.slide2Subtitle'),
+    },
+    {
+      id: '3',
+      icon: '🚀',
+      title: tr('onboarding.slide3Title'),
+      subtitle: tr('onboarding.slide3Subtitle'),
+    },
+  ];
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
@@ -118,7 +120,7 @@ export default function OnboardingScreen({ navigation }: Props) {
             style={[styles.button, { backgroundColor: t.accent }]}
             onPress={handleGetStarted}
           >
-            <Text style={styles.buttonText}>Comenzar</Text>
+            <Text style={styles.buttonText}>{tr('onboarding.getStarted')}</Text>
           </TouchableOpacity>
         ) : (
           <>
@@ -126,13 +128,13 @@ export default function OnboardingScreen({ navigation }: Props) {
               style={[styles.skipButton]}
               onPress={handleGetStarted}
             >
-              <Text style={[styles.skipText, { color: t.textMuted }]}>Saltar</Text>
+              <Text style={[styles.skipText, { color: t.textMuted }]}>{tr('onboarding.skip')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.button, { backgroundColor: t.accent }]}
               onPress={handleNext}
             >
-              <Text style={styles.buttonText}>Siguiente</Text>
+              <Text style={styles.buttonText}>{tr('onboarding.next')}</Text>
             </TouchableOpacity>
           </>
         )}

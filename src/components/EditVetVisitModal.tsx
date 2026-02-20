@@ -13,6 +13,7 @@ import {
 import { Icon } from "./ui/Icon";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from 'react-i18next';
 import { useTheme } from "../theme/useTheme";
 import { formatDateShort, formatTime } from "../utils/format";
 
@@ -46,6 +47,7 @@ export default function EditVetVisitModal({
   petName,
 }: EditVetVisitModalProps) {
   const t = useTheme();
+  const { t: tr } = useTranslation();
   const insets = useSafeAreaInsets();
 
   const [dateValue, setDateValue] = useState<Date>(new Date());
@@ -102,7 +104,7 @@ export default function EditVetVisitModal({
     const trimmedNotes = notes.trim();
 
     if (!trimmedVet || !trimmedReason) {
-      Alert.alert("Faltan datos", "Completa el veterinario y el motivo de la visita.");
+      Alert.alert(tr('vet.missingData'), tr('vet.missingDataMsg'));
       return;
     }
 
@@ -155,11 +157,11 @@ export default function EditVetVisitModal({
         <View style={styles.modalHeader}>
           <View>
             <Text style={[styles.modalTitle, { color: t.text }]}>
-              {initialData ? 'Editar visita' : 'Nueva visita'}
+              {initialData ? tr('vet.editVisit') : tr('vet.newVisit')}
             </Text>
             {petName && (
               <Text style={[styles.modalSubtitle, { color: t.textMuted }]}>
-                para {petName}
+                {tr('common.for')} {petName}
               </Text>
             )}
           </View>
@@ -169,7 +171,7 @@ export default function EditVetVisitModal({
         </View>
 
         <ScrollView style={styles.scrollContent}>
-          <Text style={[styles.label, { color: t.textMuted }]}>FECHA</Text>
+          <Text style={[styles.label, { color: t.textMuted }]}>{tr('vet.dateLabel')}</Text>
           <Pressable
             onPress={() => setShowDatePicker(true)}
             style={[styles.input, styles.dateInput, { borderColor: t.border, backgroundColor: t.bg }]}
@@ -188,7 +190,7 @@ export default function EditVetVisitModal({
             />
           )}
 
-          <Text style={[styles.label, { color: t.textMuted }]}>HORA</Text>
+          <Text style={[styles.label, { color: t.textMuted }]}>{tr('vet.timeLabel')}</Text>
           <Pressable
             onPress={() => setShowTimePicker(true)}
             style={[styles.input, styles.dateInput, { borderColor: t.border, backgroundColor: t.bg }]}
@@ -208,11 +210,11 @@ export default function EditVetVisitModal({
             />
           )}
 
-          <Text style={[styles.label, { color: t.textMuted }]}>VETERINARIO/A</Text>
+          <Text style={[styles.label, { color: t.textMuted }]}>{tr('vet.vetLabel')}</Text>
           <TextInput
             value={veterinarian}
             onChangeText={setVeterinarian}
-            placeholder="Dr. García"
+            placeholder={tr('vet.vetPlaceholder')}
             placeholderTextColor={t.textMuted}
             style={[
               styles.input,
@@ -220,11 +222,11 @@ export default function EditVetVisitModal({
             ]}
           />
 
-          <Text style={[styles.label, { color: t.textMuted }]}>MOTIVO</Text>
+          <Text style={[styles.label, { color: t.textMuted }]}>{tr('vet.reasonLabel')}</Text>
           <TextInput
             value={reason}
             onChangeText={setReason}
-            placeholder="Vacunación, revisión general..."
+            placeholder={tr('vet.reasonPlaceholder')}
             placeholderTextColor={t.textMuted}
             style={[
               styles.input,
@@ -232,11 +234,11 @@ export default function EditVetVisitModal({
             ]}
           />
 
-          <Text style={[styles.label, { color: t.textMuted }]}>NOTAS</Text>
+          <Text style={[styles.label, { color: t.textMuted }]}>{tr('vet.notesLabel')}</Text>
           <TextInput
             value={notes}
             onChangeText={setNotes}
-            placeholder="Diagnóstico, recordatorios, cosas a llevar..."
+            placeholder={tr('vet.notesPlaceholder')}
             placeholderTextColor={t.textMuted}
             multiline
             numberOfLines={4}
@@ -256,7 +258,7 @@ export default function EditVetVisitModal({
             ]}
           >
             <Text style={{ color: t.textMuted, fontWeight: "700" }}>
-              Cancelar
+              {tr('common.cancel')}
             </Text>
           </Pressable>
 
@@ -267,7 +269,7 @@ export default function EditVetVisitModal({
               { backgroundColor: t.accent, borderColor: "transparent" },
             ]}
           >
-            <Text style={{ color: "#fff", fontWeight: "800" }}>Guardar</Text>
+            <Text style={{ color: "#fff", fontWeight: "800" }}>{tr('common.save')}</Text>
           </Pressable>
         </View>
       </View>
