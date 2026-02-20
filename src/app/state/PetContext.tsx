@@ -1,6 +1,14 @@
 import React, { createContext, useContext, useMemo, useState, useEffect, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "./AuthContext";
+import { useHousehold } from "./HouseholdContext";
+import {
+  addDocument,
+  updateDocument,
+  deleteDocument,
+  onCollectionSnapshot,
+} from "../../services/firestore";
+import type { FirestorePet } from "../../types/firestore";
 
 export type PetType = "cat" | "dog" | "rabbit" | "hamster" | "bird" | "iguana" | "snake";
 export type PetStatus = "active" | "memorial";
@@ -11,13 +19,12 @@ export type Pet = {
   type: PetType;
   status: PetStatus;
   avatarKey: string;
-  birthDate?: string; // ISO string opcional
-  deceasedAt?: string; // ISO string opcional
+  birthDate?: string;
+  deceasedAt?: string;
 };
 
 type PetUpsertInput = {
   id?: string;
-
   name: string;
   type: PetType;
   avatarKey: string;
@@ -42,7 +49,6 @@ type PetContextValue = {
 
 const PetContext = createContext<PetContextValue | null>(null);
 
-const PETS_STORAGE_KEY = "@catacapp_pets";
 const SELECTED_PET_KEY = "@catacapp_selected_pet";
 
 function uid() {
@@ -51,131 +57,136 @@ function uid() {
 
 export function PetProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const { householdId, loading: householdLoading } = useHousehold();
   const [pets, setPets] = useState<Pet[]>([]);
   const [selectedPetId, setSelectedPetId] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-  const storageKey = `${PETS_STORAGE_KEY}_${user?.id}`;
   const selectedKey = `${SELECTED_PET_KEY}_${user?.id}`;
 
-  // Cargar datos al iniciar / limpiar al cerrar sesión
+  // Subscribe to Firestore pets collection
   useEffect(() => {
-    if (user) {
-      loadData();
-    } else {
-      setPets([]);
-      setSelectedPetId("");
-      setIsLoading(true);
+    if (!user || !householdId || householdLoading) {
+      if (!user) {
+        setPets([]);
+        setSelectedPetId("");
+      }
+      setIsLoading(!user ? true : householdLoading);
+      return;
     }
-  }, [user]);
 
-  // Guardar pets cuando cambien
-  useEffect(() => {
-    if (!isLoading && user) {
-      savePets();
-    }
-  }, [pets, isLoading, user]);
+    // Load saved selected pet
+    AsyncStorage.getItem(selectedKey).then((stored) => {
+      if (stored) setSelectedPetId(stored);
+    });
 
-  // Guardar selectedPetId cuando cambie
+    const unsub = onCollectionSnapshot<FirestorePet>(
+      householdId,
+      'pets',
+      (items) => {
+        const mapped: Pet[] = items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          type: item.type,
+          status: item.status,
+          avatarKey: item.avatarKey,
+          birthDate: item.birthDate,
+          deceasedAt: item.deceasedAt,
+        }));
+        setPets(mapped);
+        setIsLoading(false);
+
+        // Auto-select first pet if none selected
+        if (mapped.length > 0) {
+          setSelectedPetId((prev) => {
+            if (!prev || !mapped.some((p) => p.id === prev)) {
+              return mapped[0].id;
+            }
+            return prev;
+          });
+        } else {
+          setSelectedPetId("");
+        }
+      }
+    );
+
+    return unsub;
+  }, [user?.id, householdId, householdLoading]);
+
+  // Persist selected pet locally
   useEffect(() => {
     if (!isLoading && user && selectedPetId) {
       AsyncStorage.setItem(selectedKey, selectedPetId);
     }
   }, [selectedPetId, isLoading, user]);
 
-  const loadData = async () => {
-    try {
-      const [storedPets, storedSelected] = await Promise.all([
-        AsyncStorage.getItem(storageKey),
-        AsyncStorage.getItem(selectedKey),
-      ]);
-
-      if (storedPets) {
-        const parsedPets: Pet[] = JSON.parse(storedPets);
-        setPets(parsedPets);
-
-        if (storedSelected && parsedPets.some(p => p.id === storedSelected)) {
-          setSelectedPetId(storedSelected);
-        } else if (parsedPets.length > 0) {
-          setSelectedPetId(parsedPets[0].id);
-        }
-      }
-    } catch (error) {
-      console.error("Error loading pets:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const savePets = async () => {
-    try {
-      await AsyncStorage.setItem(storageKey, JSON.stringify(pets));
-    } catch (error) {
-      console.error("Error saving pets:", error);
-    }
-  };
-
   const selectedPet = useMemo(() => {
     return pets.find((p) => p.id === selectedPetId) ?? pets[0];
   }, [pets, selectedPetId]);
 
   const addPet = useCallback((input: PetUpsertInput) => {
+    if (!householdId) return "";
+
     const id = uid();
-    const next: Pet = {
-      id,
+    const data: FirestorePet = {
       name: input.name,
       type: input.type,
       avatarKey: input.avatarKey,
       birthDate: input.birthDate,
       status: "active",
     };
-    setPets((prev) => [next, ...prev]);
+
+    // Optimistic update
+    setPets((prev) => [{ id, ...data }, ...prev]);
     setSelectedPetId(id);
+
+    // Write to Firestore (use generated id as doc id)
+    addDocument(householdId, 'pets', data).then((firestoreId) => {
+      // If Firestore assigned a different ID, update local state
+      if (firestoreId !== id) {
+        setPets((prev) =>
+          prev.map((p) => (p.id === id ? { ...p, id: firestoreId } : p))
+        );
+        setSelectedPetId(firestoreId);
+      }
+    });
+
     return id;
-  }, []);
+  }, [householdId]);
 
   const updatePet = useCallback((id: string, input: PetUpsertInput) => {
-    setPets((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? { ...p, name: input.name, type: input.type, avatarKey: input.avatarKey, birthDate: input.birthDate }
-          : p
-      )
-    );
-  }, []);
+    if (!householdId) return;
+
+    const updates: Partial<FirestorePet> = {
+      name: input.name,
+      type: input.type,
+      avatarKey: input.avatarKey,
+      birthDate: input.birthDate,
+    };
+
+    updateDocument(householdId, 'pets', id, updates);
+  }, [householdId]);
 
   const markPetDeceased = useCallback((id: string, deceasedAtISO: string) => {
-    setPets((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? { ...p, status: "memorial" as PetStatus, deceasedAt: deceasedAtISO }
-          : p
-      )
-    );
-  }, []);
+    if (!householdId) return;
+    updateDocument(householdId, 'pets', id, {
+      status: "memorial",
+      deceasedAt: deceasedAtISO,
+    });
+  }, [householdId]);
 
   const reactivatePet = useCallback((id: string) => {
-    setPets((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? { ...p, status: "active" as PetStatus, deceasedAt: undefined }
-          : p
-      )
-    );
-  }, []);
+    if (!householdId) return;
+    updateDocument(householdId, 'pets', id, {
+      status: "active",
+      deceasedAt: null,
+    });
+  }, [householdId]);
 
   const deletePet = useCallback((id: string) => {
-    setPets((prev) => {
-      const remaining = prev.filter((p) => p.id !== id);
-      // Actualizar selectedPetId si se eliminó la mascota seleccionada
-      if (selectedPetId === id && remaining.length > 0) {
-        setSelectedPetId(remaining[0].id);
-      } else if (remaining.length === 0) {
-        setSelectedPetId("");
-      }
-      return remaining;
-    });
-  }, [selectedPetId]);
+    if (!householdId) return;
+    deleteDocument(householdId, 'pets', id);
+  }, [householdId]);
 
   const value = useMemo(
     () => ({

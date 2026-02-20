@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
+import { useHousehold } from './HouseholdContext';
+import { updateHouseholdPremium } from '../../services/firestore';
+import type { FirestorePremiumStatus } from '../../types/firestore';
 import i18n from '../../i18n';
 
 export type PremiumPlan = 'free' | 'monthly' | 'yearly' | 'lifetime';
@@ -8,7 +10,7 @@ export type PremiumPlan = 'free' | 'monthly' | 'yearly' | 'lifetime';
 export interface PremiumStatus {
   isPremium: boolean;
   plan: PremiumPlan;
-  expiresAt?: string; // ISO string
+  expiresAt?: string;
   purchasedAt?: string;
 }
 
@@ -31,8 +33,6 @@ interface PremiumContextType {
 }
 
 const PremiumContext = createContext<PremiumContextType | undefined>(undefined);
-
-const PREMIUM_STORAGE_KEY = '@catacapp_premium';
 
 // Funcionalidades premium
 export const PREMIUM_FEATURES: PremiumFeature[] = [
@@ -88,51 +88,55 @@ export const PREMIUM_PRICES = {
 
 export function PremiumProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const { household, householdId, loading: householdLoading } = useHousehold();
   const [status, setStatus] = useState<PremiumStatus>({
     isPremium: false,
     plan: 'free',
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  // Cargar estado premium al iniciar o cuando cambie el usuario
+  // Derive premium status from household doc
   useEffect(() => {
-    if (user) {
-      loadPremiumStatus();
-    } else {
+    if (!user) {
       setStatus({ isPremium: false, plan: 'free' });
       setIsLoading(false);
+      return;
     }
-  }, [user]);
 
-  const loadPremiumStatus = async () => {
-    try {
-      const stored = await AsyncStorage.getItem(`${PREMIUM_STORAGE_KEY}_${user?.id}`);
-      if (stored) {
-        const premiumData: PremiumStatus = JSON.parse(stored);
+    if (householdLoading) {
+      setIsLoading(true);
+      return;
+    }
 
-        // Verificar si ha expirado
-        if (premiumData.expiresAt && new Date(premiumData.expiresAt) < new Date()) {
-          // Suscripción expirada
-          setStatus({ isPremium: false, plan: 'free' });
-        } else {
-          setStatus(premiumData);
-        }
+    if (household?.premiumStatus) {
+      const ps = household.premiumStatus;
+
+      // Check expiration
+      if (ps.expiresAt && new Date(ps.expiresAt) < new Date()) {
+        setStatus({ isPremium: false, plan: 'free' });
+      } else {
+        setStatus({
+          isPremium: ps.isPremium,
+          plan: ps.plan,
+          expiresAt: ps.expiresAt,
+          purchasedAt: ps.purchasedAt,
+        });
       }
-    } catch (error) {
-      console.error('Error loading premium status:', error);
-    } finally {
-      setIsLoading(false);
+    } else {
+      setStatus({ isPremium: false, plan: 'free' });
     }
-  };
+
+    setIsLoading(false);
+  }, [user, household, householdLoading]);
 
   const subscribe = async (plan: PremiumPlan): Promise<{ success: boolean; error?: string }> => {
-    if (!user) {
+    if (!user || !householdId) {
       return { success: false, error: i18n.t('auth.errors.loginRequired') };
     }
 
     try {
-      // Aquí iría la integración con el sistema de pagos (Google Play Billing, RevenueCat, etc.)
-      // Por ahora simulamos la compra
+      // TODO: Integrate real payment system (Google Play Billing, RevenueCat)
+      // Simulated purchase for now
 
       const now = new Date();
       let expiresAt: string | undefined;
@@ -145,19 +149,19 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
           expiresAt = new Date(now.setFullYear(now.getFullYear() + 1)).toISOString();
           break;
         case 'lifetime':
-          expiresAt = undefined; // Nunca expira
+          expiresAt = undefined;
           break;
       }
 
-      const newStatus: PremiumStatus = {
+      const premiumStatus: FirestorePremiumStatus = {
         isPremium: true,
         plan,
         expiresAt,
         purchasedAt: new Date().toISOString(),
       };
 
-      await AsyncStorage.setItem(`${PREMIUM_STORAGE_KEY}_${user.id}`, JSON.stringify(newStatus));
-      setStatus(newStatus);
+      // Write to household doc (propagates to all members via onSnapshot)
+      await updateHouseholdPremium(householdId, premiumStatus);
 
       return { success: true };
     } catch (error) {
@@ -170,23 +174,16 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
       return { success: false, error: i18n.t('auth.errors.loginRequired') };
     }
 
-    try {
-      // Aquí iría la verificación con el sistema de pagos
-      // Por ahora solo recargamos del storage
-      await loadPremiumStatus();
-
-      if (status.isPremium) {
-        return { success: true };
-      } else {
-        return { success: false, error: i18n.t('auth.errors.noPurchasesFound') };
-      }
-    } catch (error) {
-      return { success: false, error: i18n.t('auth.errors.restoreError') };
+    // TODO: Verify with real payment system
+    if (status.isPremium) {
+      return { success: true };
+    } else {
+      return { success: false, error: i18n.t('auth.errors.noPurchasesFound') };
     }
   };
 
   const cancelSubscription = async (): Promise<{ success: boolean; error?: string }> => {
-    if (!user) {
+    if (!user || !householdId) {
       return { success: false, error: i18n.t('auth.errors.loginRequired') };
     }
 
@@ -195,15 +192,8 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Aquí iría la cancelación real con el sistema de pagos
-      // Por ahora simplemente limpiamos el estado
-      const newStatus: PremiumStatus = {
-        isPremium: false,
-        plan: 'free',
-      };
-
-      await AsyncStorage.setItem(`${PREMIUM_STORAGE_KEY}_${user.id}`, JSON.stringify(newStatus));
-      setStatus(newStatus);
+      // TODO: Cancel with real payment system
+      await updateHouseholdPremium(householdId, null);
 
       return { success: true };
     } catch (error) {
@@ -214,7 +204,6 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
   const checkFeatureAccess = (featureId: string): boolean => {
     if (status.isPremium) return true;
 
-    // Algunas features básicas disponibles para free
     const freeFeatures = ['basic_records', 'basic_reminders'];
     return freeFeatures.includes(featureId);
   };

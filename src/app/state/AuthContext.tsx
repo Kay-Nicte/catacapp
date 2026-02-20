@@ -8,6 +8,7 @@ import React, {
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 import i18n from "../../i18n";
+import { getUserDoc, createUserDoc } from "../../services/firestore";
 
 // ⚠️ IMPORTANTE: Reemplaza esto con tu Web Client ID de Firebase Console
 // Lo encuentras en: Firebase Console → Configuración → Tus apps → Configuración del SDK
@@ -68,9 +69,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Escuchar cambios de autenticación (persistencia automática)
   useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged((firebaseUser) => {
+    const unsubscribe = auth().onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
         setUser(mapFirebaseUser(firebaseUser));
+
+        // Ensure Firestore user doc exists (creates household if needed)
+        try {
+          const userDoc = await getUserDoc(firebaseUser.uid);
+          if (!userDoc) {
+            await createUserDoc(
+              firebaseUser.uid,
+              firebaseUser.email || ""
+            );
+          }
+        } catch (error) {
+          console.error("Error ensuring user doc:", error);
+        }
       } else {
         setUser(null);
       }
