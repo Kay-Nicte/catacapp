@@ -7,6 +7,7 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Icon } from '../components/ui/Icon';
 import { AnimatedPressable } from '../components/ui/AnimatedPressable';
 import { useTheme } from '../theme/useTheme';
@@ -16,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import { usePet } from '../app/state/PetContext';
 import { useRecords } from '../app/state/RecordsContext';
 import { usePremium } from '../app/state/PremiumContext';
+import i18n, { getLocale } from '../i18n';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CHART_WIDTH = SCREEN_WIDTH - 40;
@@ -86,6 +88,7 @@ function SimpleLineChart({
   unit: string;
 }) {
   const t = useTheme();
+  const { t: tr } = useTranslation();
 
   if (data.length === 0) {
     return (
@@ -94,10 +97,10 @@ function SimpleLineChart({
         <View style={styles.emptyChart}>
           <Icon name="analytics" size={36} color={t.textMuted} />
           <Text style={[styles.emptyChartText, { color: t.textMuted }]}>
-            Sin datos de peso registrados
+            {tr('charts.noWeightData')}
           </Text>
           <Text style={[styles.emptyChartHint, { color: t.textMuted }]}>
-            Añade registros de peso en la pestaña Registros
+            {tr('charts.addWeightHint')}
           </Text>
         </View>
         <Text style={[styles.chartUnit, { color: t.textMuted }]}>{unit}</Text>
@@ -247,6 +250,7 @@ function StatCard({
 
 export default function ChartsScreen() {
   const t = useTheme();
+  const { t: tr } = useTranslation();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { selectedPet, selectedPetId } = usePet();
@@ -277,7 +281,7 @@ export default function ChartsScreen() {
         (r) => r.type === 'FOOD' && r.timestamp.split('T')[0] === day
       );
       return {
-        label: new Date(day).toLocaleDateString('es-ES', { weekday: 'short' }).slice(0, 2),
+        label: new Date(day).toLocaleDateString(getLocale(), { weekday: 'short' }).slice(0, 2),
         value: dayRecords.length,
       };
     });
@@ -290,7 +294,7 @@ export default function ChartsScreen() {
         (r) => r.type === 'POOP' && r.timestamp.split('T')[0] === day
       );
       return {
-        label: new Date(day).toLocaleDateString('es-ES', { weekday: 'short' }).slice(0, 2),
+        label: new Date(day).toLocaleDateString(getLocale(), { weekday: 'short' }).slice(0, 2),
         value: dayRecords.length,
       };
     });
@@ -307,7 +311,7 @@ export default function ChartsScreen() {
         return acc + (match ? parseFloat(match[1].replace(',', '.')) : 0);
       }, 0);
       return {
-        label: new Date(day).toLocaleDateString('es-ES', { weekday: 'short' }).slice(0, 2),
+        label: new Date(day).toLocaleDateString(getLocale(), { weekday: 'short' }).slice(0, 2),
         value: Math.round(totalHours * 10) / 10,
       };
     });
@@ -370,17 +374,16 @@ export default function ChartsScreen() {
           <View style={[styles.lockedIcon, { backgroundColor: t.accentSoft }]}>
             <Icon name="lock-closed" size={48} color={t.accent} />
           </View>
-          <Text style={[styles.lockedTitle, { color: t.text }]}>Función Premium</Text>
+          <Text style={[styles.lockedTitle, { color: t.text }]}>{tr('charts.premiumFeature')}</Text>
           <Text style={[styles.lockedDesc, { color: t.textMuted }]}>
-            Los gráficos y estadísticas están disponibles para usuarios Premium.
-            Desbloquea esta función para ver la evolución de tu mascota.
+            {tr('charts.premiumDesc')}
           </Text>
           <AnimatedPressable
             onPress={() => (navigation as any).navigate('Premium')}
             style={[styles.unlockButton, { backgroundColor: t.accent }]}
           >
             <Icon name="diamond" size={20} color="#fff" />
-            <Text style={styles.unlockButtonText}>Ver planes Premium</Text>
+            <Text style={styles.unlockButtonText}>{tr('charts.viewPlans')}</Text>
           </AnimatedPressable>
         </View>
       </View>
@@ -396,7 +399,7 @@ export default function ChartsScreen() {
             <Icon name="paw" size={18} color="#fff" />
           </View>
           <View>
-            <Text style={[styles.headerTitle, { color: t.text }]}>Estadísticas</Text>
+            <Text style={[styles.headerTitle, { color: t.text }]}>{tr('charts.title')}</Text>
             {selectedPet?.name && (
               <Text style={[styles.headerSubtitle, { color: t.textMuted }]}>
                 {selectedPet.name}
@@ -406,7 +409,7 @@ export default function ChartsScreen() {
         </View>
         <View style={[styles.premiumBadge, { backgroundColor: t.accentSoft }]}>
           <Icon name="diamond" size={14} color={t.accent} />
-          <Text style={[styles.premiumBadgeText, { color: t.accent }]}>Premium</Text>
+          <Text style={[styles.premiumBadgeText, { color: t.accent }]}>{tr('premium.badge')}</Text>
         </View>
       </View>
 
@@ -414,10 +417,10 @@ export default function ChartsScreen() {
         <View style={styles.globalEmpty}>
           <Icon name="bar-chart-outline" size={64} color={t.textMuted} />
           <Text style={[styles.globalEmptyTitle, { color: t.text }]}>
-            Sin datos todavía
+            {tr('charts.noDataYet')}
           </Text>
           <Text style={[styles.globalEmptyHint, { color: t.textMuted }]}>
-            Empieza a registrar comidas, sueño, peso y más en la pestaña Registros para ver tus estadísticas aquí.
+            {tr('charts.noDataHint')}
           </Text>
         </View>
       ) : (
@@ -430,68 +433,68 @@ export default function ChartsScreen() {
         <View style={styles.statsGrid}>
           <StatCard
             icon="restaurant"
-            title="Comidas"
+            title={tr('charts.food')}
             value={stats.totalFood.toString()}
-            subtitle={`~${stats.avgFood.toFixed(1)}/día (7 días)`}
+            subtitle={tr('charts.avgPerDay', { avg: stats.avgFood.toFixed(1) })}
           />
           <StatCard
             icon="water"
-            title="Deposiciones"
+            title={tr('charts.poop')}
             value={stats.totalPoop.toString()}
-            subtitle={`~${stats.avgPoop.toFixed(1)}/día (7 días)`}
+            subtitle={tr('charts.avgPerDay', { avg: stats.avgPoop.toFixed(1) })}
           />
           <StatCard
             icon="moon"
-            title="Sueño"
+            title={tr('charts.sleep')}
             value={stats.totalSleep.toString()}
-            subtitle="registros totales"
+            subtitle={tr('charts.totalRecords')}
           />
           <StatCard
             icon="fitness"
-            title="Peso actual"
-            value={stats.lastWeight || "—"}
+            title={tr('charts.currentWeight')}
+            value={stats.lastWeight || "\u2014"}
             subtitle={stats.lastWeight
               ? (stats.weightMin !== null && stats.weightMax !== null && stats.weightMin !== stats.weightMax
-                ? `Min: ${stats.weightMin.toFixed(1)} · Max: ${stats.weightMax.toFixed(1)}`
-                : "último registro")
-              : "sin registros"}
+                ? tr('charts.minMax', { min: stats.weightMin.toFixed(1), max: stats.weightMax.toFixed(1) })
+                : tr('charts.lastRecord'))
+              : tr('charts.noRecordsShort')}
           />
         </View>
 
         {/* Charts */}
-        <Text style={[styles.sectionTitle, { color: t.textMuted }]}>ÚLTIMOS 7 DÍAS</Text>
+        <Text style={[styles.sectionTitle, { color: t.textMuted }]}>{tr('charts.last7Days')}</Text>
 
         <SimpleBarChart
           data={foodData}
           color={t.accent}
-          title="Comidas registradas"
-          unit="registros por día"
+          title={tr('charts.foodRecorded')}
+          unit={tr('charts.recordsPerDay')}
         />
 
         <SimpleBarChart
           data={poopData}
           color="#4CAF50"
-          title="Deposiciones"
-          unit="registros por día"
+          title={tr('charts.poop')}
+          unit={tr('charts.recordsPerDay')}
         />
 
         <SimpleBarChart
           data={sleepData}
           color="#7C4DFF"
-          title="Horas de sueño"
-          unit="horas por día"
+          title={tr('charts.sleepHours')}
+          unit={tr('charts.hoursPerDay')}
         />
 
         {/* Evolución de peso */}
-        <Text style={[styles.sectionTitle, { color: t.textMuted, marginTop: 12 }]}>EVOLUCIÓN DE PESO</Text>
+        <Text style={[styles.sectionTitle, { color: t.textMuted, marginTop: 12 }]}>{tr('charts.weightEvolution')}</Text>
 
         <SimpleLineChart
           data={weightData}
           color="#FF7043"
-          title="Peso"
+          title={tr('charts.weight')}
           unit={stats.weightAvg !== null
-            ? `Promedio: ${stats.weightAvg.toFixed(2)} kg · últimos ${weightData.length} registros`
-            : "últimos 10 registros (kg)"}
+            ? tr('charts.weightAvg', { avg: stats.weightAvg.toFixed(2), count: weightData.length })
+            : tr('charts.weightUnit')}
         />
       </ScrollView>
       )}

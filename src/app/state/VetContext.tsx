@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
 import { useNotifications } from './NotificationContext';
 import { usePet } from './PetContext';
+import i18n from '../../i18n';
 
 export interface VetVisit {
   id: string;
@@ -78,10 +79,10 @@ export function VetProvider({ children }: { children: ReactNode }) {
     // Programar notificación para citas futuras
     if (visit.type === 'UPCOMING') {
       const pet = pets.find(p => p.id === visit.petId);
-      const petName = pet?.name || 'Tu mascota';
+      const petName = pet?.name || i18n.t('common.yourPet');
       const notificationId = await scheduleVetReminder(
         petName,
-        visit.veterinarian || 'el veterinario',
+        visit.veterinarian || i18n.t('common.theVet'),
         new Date(visit.date)
       );
       if (notificationId) {

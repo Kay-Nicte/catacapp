@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from 'react-i18next';
 import { useTheme } from "../theme/useTheme";
 import { usePet } from "../app/state/PetContext";
 import { useRecords } from "../app/state/RecordsContext";
@@ -28,6 +29,7 @@ import { formatDatePadded } from "../utils/format";
 
 export default function PetFormScreen() {
   const t = useTheme();
+  const { t: tr } = useTranslation();
   const insets = useSafeAreaInsets();
 
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -114,7 +116,7 @@ export default function PetFormScreen() {
 
     const clean = name.trim();
     if (!clean) {
-      Alert.alert("Falta nombre", "Ponle un nombre a la mascota.");
+      Alert.alert(tr('pets.missingName'), tr('pets.missingNameMsg'));
       return;
     }
 
@@ -130,11 +132,11 @@ export default function PetFormScreen() {
     const activePets = pets.filter(p => p.status === "active").length;
     if (activePets >= FREE_LIMITS.maxPets && !isPremium) {
       Alert.alert(
-        "Límite alcanzado",
-        `Con el plan gratuito puedes tener hasta ${FREE_LIMITS.maxPets} mascotas activas. Hazte Premium para añadir mascotas ilimitadas.`,
+        tr('pets.limitReached'),
+        tr('pets.limitReachedMsg', { max: FREE_LIMITS.maxPets }),
         [
-          { text: "Cancelar", style: "cancel" },
-          { text: "Ver Premium", onPress: () => (nav as any).navigate("Premium") },
+          { text: tr('common.cancel'), style: "cancel" },
+          { text: tr('pets.viewPremium'), onPress: () => (nav as any).navigate("Premium") },
         ]
       );
       return;
@@ -148,12 +150,12 @@ export default function PetFormScreen() {
     if (!editing || !petId) return;
 
     Alert.alert(
-      "Marcar como fallecido",
-      "Esto pondrá la ficha en modo recuerdo (solo lectura). Se puede deshacer.",
+      tr('pets.confirmDeceased'),
+      tr('pets.confirmDeceasedMsg'),
       [
-        { text: "Cancelar", style: "cancel" },
+        { text: tr('common.cancel'), style: "cancel" },
         {
-          text: "Marcar",
+          text: tr('pets.confirmMark'),
           style: "destructive",
           onPress: () => {
             markPetDeceased(petId, new Date().toISOString());
@@ -168,12 +170,12 @@ export default function PetFormScreen() {
     if (!editing || !petId) return;
 
     Alert.alert(
-      "Reactivar mascota",
-      "Volverá a estar activa y podrás registrar cosas de nuevo.",
+      tr('pets.confirmReactivate'),
+      tr('pets.confirmReactivateMsg'),
       [
-        { text: "Cancelar", style: "cancel" },
+        { text: tr('common.cancel'), style: "cancel" },
         {
-          text: "Reactivar",
+          text: tr('pets.confirmReactivateBtn'),
           onPress: () => {
             reactivatePet(petId);
             nav.goBack();
@@ -187,12 +189,12 @@ export default function PetFormScreen() {
     if (!editing || !petId) return;
 
     Alert.alert(
-      "Eliminar ficha",
-      "Esto eliminará permanentemente la mascota y todos sus registros, vacunas y citas veterinarias. Esta acción no se puede deshacer.",
+      tr('pets.confirmDelete'),
+      tr('pets.confirmDeleteMsg'),
       [
-        { text: "Cancelar", style: "cancel" },
+        { text: tr('common.cancel'), style: "cancel" },
         {
-          text: "Eliminar",
+          text: tr('common.delete'),
           style: "destructive",
           onPress: async () => {
             await deleteVaccinesByPet(petId);
@@ -227,17 +229,17 @@ export default function PetFormScreen() {
         >
           <PetAvatar avatarKey={avatarKey} memorial={isMemorial} size={110} />
           <Text style={[styles.previewText, { color: t.textMuted }]}>
-            {isMemorial ? "Modo recuerdo" : "Vista previa"}
+            {isMemorial ? tr('pets.memorialMode') : tr('pets.preview')}
           </Text>
         </View>
 
         {/* Nombre */}
-        <Text style={[styles.label, { color: t.textMuted }]}>Nombre</Text>
+        <Text style={[styles.label, { color: t.textMuted }]}>{tr('pets.nameLabel')}</Text>
         <TextInput
           value={name}
           onChangeText={setName}
           editable={!readOnly}
-          placeholder="Ej: Perla"
+          placeholder={tr('pets.namePlaceholder')}
           placeholderTextColor={t.textMuted}
           style={[
             styles.input,
@@ -246,7 +248,7 @@ export default function PetFormScreen() {
         />
 
         {/* Fecha de nacimiento */}
-        <Text style={[styles.label, { color: t.textMuted }]}>Fecha de nacimiento (opcional)</Text>
+        <Text style={[styles.label, { color: t.textMuted }]}>{tr('pets.birthDateLabel')}</Text>
         <Pressable
           onPress={() => !readOnly && setShowDatePicker(true)}
           style={[
@@ -255,12 +257,12 @@ export default function PetFormScreen() {
           ]}
         >
           <Text style={[styles.dateText, { color: birthDate ? t.text : t.textMuted }]}>
-            {birthDate ? formatDatePadded(birthDate) : "Seleccionar fecha"}
+            {birthDate ? formatDatePadded(birthDate) : tr('pets.selectDate')}
           </Text>
         </Pressable>
         {birthDate && !readOnly && (
           <Pressable onPress={() => setBirthDate(null)} style={styles.clearDate}>
-            <Text style={[styles.clearDateText, { color: t.textMuted }]}>Quitar fecha</Text>
+            <Text style={[styles.clearDateText, { color: t.textMuted }]}>{tr('pets.clearDate')}</Text>
           </Pressable>
         )}
         {showDatePicker && (
@@ -274,21 +276,21 @@ export default function PetFormScreen() {
         )}
         {Platform.OS === 'ios' && showDatePicker && (
           <Pressable onPress={() => setShowDatePicker(false)} style={styles.doneButton}>
-            <Text style={[styles.doneButtonText, { color: t.accent }]}>Listo</Text>
+            <Text style={[styles.doneButtonText, { color: t.accent }]}>{tr('common.done')}</Text>
           </Pressable>
         )}
 
         {/* Tipo */}
-        <Text style={[styles.label, { color: t.textMuted }]}>Tipo</Text>
+        <Text style={[styles.label, { color: t.textMuted }]}>{tr('pets.typeLabel')}</Text>
         <View style={styles.typeGrid}>
           {[
-            { key: "cat", label: "Gato", defaultAvatar: "cat_gray_01" },
-            { key: "dog", label: "Perro", defaultAvatar: "dog_yellow_01" },
-            { key: "rabbit", label: "Conejo", defaultAvatar: "rabbit_white" },
-            { key: "hamster", label: "Hamster", defaultAvatar: "hamster_golden" },
-            { key: "bird", label: "Pájaro", defaultAvatar: "bird_canary" },
-            { key: "iguana", label: "Iguana", defaultAvatar: "iguana_green" },
-            { key: "snake", label: "Serpiente", defaultAvatar: "snake_python" },
+            { key: "cat", label: tr('pets.type.cat'), defaultAvatar: "cat_gray_01" },
+            { key: "dog", label: tr('pets.type.dog'), defaultAvatar: "dog_yellow_01" },
+            { key: "rabbit", label: tr('pets.type.rabbit'), defaultAvatar: "rabbit_white" },
+            { key: "hamster", label: tr('pets.type.hamster'), defaultAvatar: "hamster_golden" },
+            { key: "bird", label: tr('pets.type.bird'), defaultAvatar: "bird_canary" },
+            { key: "iguana", label: tr('pets.type.iguana'), defaultAvatar: "iguana_green" },
+            { key: "snake", label: tr('pets.type.snake'), defaultAvatar: "snake_python" },
           ].map((item) => {
             const isSelected = type === item.key;
             const isTypeLocked = premiumPetTypes.has(item.key) && !isPremium;
@@ -299,11 +301,11 @@ export default function PetFormScreen() {
                 onPress={() => {
                   if (isTypeLocked) {
                     Alert.alert(
-                      "Tipo Premium",
-                      "Este tipo de mascota es exclusivo para usuarios Premium.",
+                      tr('pets.premiumType'),
+                      tr('pets.premiumTypeMsg'),
                       [
-                        { text: "Cancelar", style: "cancel" },
-                        { text: "Ver Premium", onPress: () => (nav as any).navigate("Premium") },
+                        { text: tr('common.cancel'), style: "cancel" },
+                        { text: tr('pets.viewPremium'), onPress: () => (nav as any).navigate("Premium") },
                       ]
                     );
                     return;
@@ -334,7 +336,7 @@ export default function PetFormScreen() {
         </View>
 
         {/* Avatar */}
-        <Text style={[styles.label, { color: t.textMuted }]}>Avatar</Text>
+        <Text style={[styles.label, { color: t.textMuted }]}>{tr('pets.avatarLabel')}</Text>
         <View style={styles.avatarGrid}>
           {options.map((k) => {
             const selected = k === avatarKey;
@@ -346,11 +348,11 @@ export default function PetFormScreen() {
                 onPress={() => {
                   if (isLocked) {
                     Alert.alert(
-                      "Avatar Premium",
-                      "Este avatar es exclusivo para usuarios Premium.",
+                      tr('pets.premiumAvatar'),
+                      tr('pets.premiumAvatarMsg'),
                       [
-                        { text: "Cancelar", style: "cancel" },
-                        { text: "Ver Premium", onPress: () => (nav as any).navigate("Premium") },
+                        { text: tr('common.cancel'), style: "cancel" },
+                        { text: tr('pets.viewPremium'), onPress: () => (nav as any).navigate("Premium") },
                       ]
                     );
                     return;
@@ -380,29 +382,29 @@ export default function PetFormScreen() {
         {/* Estado (bien colocado, sin cortarse) */}
         {editing && pet && (
           <View style={[styles.stateBox, { borderColor: t.border, backgroundColor: t.card }]}>
-            <Text style={[styles.stateTitle, { color: t.text }]}>Estado</Text>
+            <Text style={[styles.stateTitle, { color: t.text }]}>{tr('pets.stateLabel')}</Text>
             <Text style={[styles.stateDesc, { color: t.textMuted }]}>
               {pet.status === "active"
-                ? "Activa"
-                : "Modo recuerdo"}
+                ? tr('pets.active')
+                : tr('pets.memorialMode')}
             </Text>
 
             {pet.status === "active" ? (
               <Pressable onPress={confirmMarkDeceased} style={styles.stateAction}>
                 <Text style={[styles.stateActionText, { color: t.textMuted }]}>
-                  Marcar como fallecido
+                  {tr('pets.markDeceased')}
                 </Text>
               </Pressable>
             ) : (
               <Pressable onPress={confirmReactivate} style={styles.stateAction}>
                 <Text style={[styles.stateActionText, { color: t.textMuted }]}>
-                  Reactivar mascota
+                  {tr('pets.reactivate')}
                 </Text>
               </Pressable>
             )}
 
             <Pressable onPress={confirmDelete} style={[styles.stateAction, { marginTop: 10 }]}>
-              <Text style={[styles.deleteText, { color: t.danger }]}>Eliminar ficha</Text>
+              <Text style={[styles.deleteText, { color: t.danger }]}>{tr('pets.deletePet')}</Text>
             </Pressable>
           </View>
         )}
@@ -428,7 +430,7 @@ export default function PetFormScreen() {
           ]}
         >
           <Text style={{ color: "#fff", fontWeight: "900" }}>
-            {editing ? "Guardar cambios" : "Guardar"}
+            {editing ? tr('pets.saveChanges') : tr('common.save')}
           </Text>
         </Pressable>
       </View>

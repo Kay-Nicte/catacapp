@@ -11,22 +11,13 @@ import {
 } from "react-native";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from 'react-i18next';
 import { useTheme } from "../theme/useTheme";
 import { RecordType } from "../app/state/RecordsContext";
 import { Icon } from "./ui/Icon";
 import { formatTime } from "../utils/format";
 
 const typeLabels: RecordType[] = ["FOOD", "POOP", "SLEEP", "WEIGHT", "NOTE"];
-
-function prettyType(t: RecordType) {
-  switch (t) {
-    case "FOOD": return "Comida";
-    case "POOP": return "Deposición";
-    case "SLEEP": return "Sueño";
-    case "WEIGHT": return "Peso";
-    case "NOTE": return "Nota";
-  }
-}
 
 interface EditRecordModalProps {
   visible: boolean;
@@ -56,6 +47,7 @@ export default function EditRecordModal({
   petName,
 }: EditRecordModalProps) {
   const t = useTheme();
+  const { t: tr } = useTranslation();
   const insets = useSafeAreaInsets();
 
   const [type, setType] = useState<RecordType>(initialData?.type || "FOOD");
@@ -123,11 +115,11 @@ export default function EditRecordModal({
         <View style={styles.modalHeader}>
           <View>
             <Text style={[styles.modalTitle, { color: t.text }]}>
-              {mode === "edit" ? "Editar registro" : "Confirmar rutina"}
+              {mode === "edit" ? tr('editRecord.editTitle') : tr('editRecord.confirmTitle')}
             </Text>
             {petName && (
               <Text style={[styles.modalSubtitle, { color: t.textMuted }]}>
-                para {petName}
+                {tr('common.for')} {petName}
               </Text>
             )}
           </View>
@@ -137,7 +129,7 @@ export default function EditRecordModal({
         </View>
 
         <ScrollView style={styles.scrollContent}>
-          <Text style={[styles.label, { color: t.textMuted }]}>TIPO</Text>
+          <Text style={[styles.label, { color: t.textMuted }]}>{tr('editRecord.type')}</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -163,18 +155,18 @@ export default function EditRecordModal({
                       { color: active ? t.accent : t.textMuted },
                     ]}
                   >
-                    {prettyType(tp)}
+                    {tr('common.recordTypeSingular.' + tp)}
                   </Text>
                 </Pressable>
               );
             })}
           </ScrollView>
 
-          <Text style={[styles.label, { color: t.textMuted }]}>TÍTULO</Text>
+          <Text style={[styles.label, { color: t.textMuted }]}>{tr('editRecord.titleLabel')}</Text>
           <TextInput
             value={title}
             onChangeText={setTitle}
-            placeholder="Ej: Pienso, Paseo..."
+            placeholder={tr('editRecord.titlePlaceholder')}
             placeholderTextColor={t.textMuted}
             style={[
               styles.input,
@@ -182,7 +174,7 @@ export default function EditRecordModal({
             ]}
           />
 
-          <Text style={[styles.label, { color: t.textMuted }]}>HORA</Text>
+          <Text style={[styles.label, { color: t.textMuted }]}>{tr('editRecord.timeLabel')}</Text>
           <Pressable
             onPress={() => setShowTimePicker(true)}
             style={[styles.input, styles.timeInput, { borderColor: t.border, backgroundColor: t.bg }]}
@@ -202,11 +194,11 @@ export default function EditRecordModal({
             />
           )}
 
-          <Text style={[styles.label, { color: t.textMuted }]}>VALOR</Text>
+          <Text style={[styles.label, { color: t.textMuted }]}>{tr('editRecord.valueLabel')}</Text>
           <TextInput
             value={value}
             onChangeText={setValue}
-            placeholder="Ej: 150 g, 30 min, 4,2 kg..."
+            placeholder={tr('editRecord.valuePlaceholder')}
             placeholderTextColor={t.textMuted}
             style={[
               styles.input,
@@ -224,7 +216,7 @@ export default function EditRecordModal({
             ]}
           >
             <Text style={{ color: t.textMuted, fontWeight: "700" }}>
-              Cancelar
+              {tr('common.cancel')}
             </Text>
           </Pressable>
 
@@ -235,7 +227,7 @@ export default function EditRecordModal({
               { backgroundColor: t.accent, borderColor: "transparent" },
             ]}
           >
-            <Text style={{ color: "#fff", fontWeight: "800" }}>Guardar</Text>
+            <Text style={{ color: "#fff", fontWeight: "800" }}>{tr('common.save')}</Text>
           </Pressable>
         </View>
       </View>

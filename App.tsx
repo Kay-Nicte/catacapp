@@ -1,3 +1,4 @@
+import './src/i18n';
 import React, { useEffect, useCallback } from "react";
 import { StatusBar, View, ActivityIndicator } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";

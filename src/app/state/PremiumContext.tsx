@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
+import i18n from '../../i18n';
 
 export type PremiumPlan = 'free' | 'monthly' | 'yearly' | 'lifetime';
 
@@ -36,46 +37,40 @@ const PREMIUM_STORAGE_KEY = '@catacapp_premium';
 // Funcionalidades premium
 export const PREMIUM_FEATURES: PremiumFeature[] = [
   {
-    id: 'export',
-    name: 'Exportar datos',
-    description: 'Exporta todos los datos de tus mascotas a PDF o CSV',
-    icon: 'download',
+    id: 'noAds',
+    name: 'Sin anuncios',
+    description: 'Disfruta de la app sin interrupciones publicitarias',
+    icon: 'eye-off',
   },
   {
     id: 'charts',
     name: 'Gráficos y estadísticas',
-    description: 'Visualiza la evolución del peso, comidas y más',
+    description: 'Visualiza la evolución de salud de tu mascota',
     icon: 'stats-chart',
   },
   {
-    id: 'unlimited_pets',
+    id: 'unlimitedPets',
     name: 'Mascotas ilimitadas',
     description: 'Añade todas las mascotas que quieras',
     icon: 'paw',
   },
   {
-    id: 'cloud_backup',
-    name: 'Backup en la nube',
-    description: 'Tus datos siempre seguros y sincronizados',
+    id: 'export',
+    name: 'Exportar datos',
+    description: 'Descarga tus registros en formato CSV',
+    icon: 'download',
+  },
+  {
+    id: 'backup',
+    name: 'Backup completo',
+    description: 'Crea y restaura copias de seguridad',
     icon: 'cloud-upload',
   },
   {
     id: 'reminders',
     name: 'Recordatorios avanzados',
-    description: 'Notificaciones personalizadas para vacunas y citas',
+    description: 'Configura recordatorios personalizados',
     icon: 'notifications',
-  },
-  {
-    id: 'premium_avatars',
-    name: 'Avatares exclusivos',
-    description: 'Desbloquea razas premium: Bengala, Maine Coon, Husky y más',
-    icon: 'happy',
-  },
-  {
-    id: 'no_ads',
-    name: 'Sin publicidad',
-    description: 'Disfruta de la app sin interrupciones',
-    icon: 'eye-off',
   },
 ];
 
@@ -132,7 +127,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
 
   const subscribe = async (plan: PremiumPlan): Promise<{ success: boolean; error?: string }> => {
     if (!user) {
-      return { success: false, error: 'Debes iniciar sesión' };
+      return { success: false, error: i18n.t('auth.errors.loginRequired') };
     }
 
     try {
@@ -166,13 +161,13 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
 
       return { success: true };
     } catch (error) {
-      return { success: false, error: 'Error al procesar la compra' };
+      return { success: false, error: i18n.t('auth.errors.purchaseError') };
     }
   };
 
   const restore = async (): Promise<{ success: boolean; error?: string }> => {
     if (!user) {
-      return { success: false, error: 'Debes iniciar sesión' };
+      return { success: false, error: i18n.t('auth.errors.loginRequired') };
     }
 
     try {
@@ -183,20 +178,20 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
       if (status.isPremium) {
         return { success: true };
       } else {
-        return { success: false, error: 'No se encontraron compras anteriores' };
+        return { success: false, error: i18n.t('auth.errors.noPurchasesFound') };
       }
     } catch (error) {
-      return { success: false, error: 'Error al restaurar compras' };
+      return { success: false, error: i18n.t('auth.errors.restoreError') };
     }
   };
 
   const cancelSubscription = async (): Promise<{ success: boolean; error?: string }> => {
     if (!user) {
-      return { success: false, error: 'Debes iniciar sesión' };
+      return { success: false, error: i18n.t('auth.errors.loginRequired') };
     }
 
     if (!status.isPremium) {
-      return { success: false, error: 'No tienes una suscripción activa' };
+      return { success: false, error: i18n.t('auth.errors.noActiveSub') };
     }
 
     try {
@@ -212,7 +207,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
 
       return { success: true };
     } catch (error) {
-      return { success: false, error: 'Error al cancelar la suscripción' };
+      return { success: false, error: i18n.t('auth.errors.cancelError') };
     }
   };
 

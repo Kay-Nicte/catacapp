@@ -1,8 +1,10 @@
-import React, { useMemo, useState } from "react";
-import { View, Text, Pressable, FlatList, StyleSheet, ActivityIndicator } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { View, Text, Pressable, FlatList, StyleSheet, ActivityIndicator, Modal, Switch } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/useTheme";
 import { shadows } from "../theme/tokens";
+import { useAuth } from "../app/state/AuthContext";
 import { usePet } from "../app/state/PetContext";
 import { useRecords, RecordType } from "../app/state/RecordsContext";
 import PetAvatar from "../components/PetAvatar";
@@ -10,6 +12,7 @@ import RoutinesModal from "../components/RoutinesModal";
 import EditRecordModal from "../components/EditRecordModal";
 import { Icon } from "../components/ui/Icon";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
+import { useTranslation } from "react-i18next";
 import { useNavigation } from "@react-navigation/native";
 import type { CompositeNavigationProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -17,22 +20,16 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { RootStackParamList } from "../app/navigation/AppStack";
 import type { TabsParamList } from "../app/navigation/AppTabs";
 
+const SUMMARY_PREFS_KEY = "@catacapp_summary_prefs";
+type SummaryPrefs = Record<string, boolean>; // keyed by RecordType
+const DEFAULT_PREFS: SummaryPrefs = { FOOD: true, POOP: true, SLEEP: true, WEIGHT: true };
+
 type Summary = { id: string; icon: string; name: string; value: string; type: RecordType };
 
 type NavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<TabsParamList>,
   NativeStackNavigationProp<RootStackParamList>
 >;
-
-function prettyType(t: RecordType) {
-  switch (t) {
-    case "FOOD": return "Comidas";
-    case "POOP": return "Deposiciones";
-    case "SLEEP": return "Sueño";
-    case "WEIGHT": return "Peso";
-    case "NOTE": return "Notas";
-  }
-}
 
 function getIcon(t: RecordType): string {
   switch (t) {
@@ -44,48 +41,38 @@ function getIcon(t: RecordType): string {
   }
 }
 
-function calculateAge(birthDateISO?: string): string {
+function calculateAge(birthDateISO: string | undefined, tr: (key: string, opts?: any) => string): string {
   if (!birthDateISO) return "";
-
   const now = new Date();
   const birth = new Date(birthDateISO);
-
   let years = now.getFullYear() - birth.getFullYear();
   let months = now.getMonth() - birth.getMonth();
-
-  if (months < 0) {
-    years--;
-    months += 12;
-  }
-
-  // Ajustar si el día actual es menor al día de nacimiento
-  if (now.getDate() < birth.getDate()) {
-    months--;
-    if (months < 0) {
-      years--;
-      months += 12;
-    }
-  }
-
+  if (months < 0) { years--; months += 12; }
+  if (now.getDate() < birth.getDate()) { months--; if (months < 0) { years--; months += 12; } }
   if (years === 0) {
-    return `${months} ${months === 1 ? 'mes' : 'meses'}`;
+    return tr('home.age.months', { count: months });
   } else if (months === 0) {
-    return `${years} ${years === 1 ? 'año' : 'años'}`;
+    return tr('home.age.years', { count: years });
   } else {
-    return `${years} ${years === 1 ? 'año' : 'años'} ${months}m`;
+    const yearLabel = tr('home.age.years', { count: years });
+    return `${yearLabel} ${months}m`;
   }
 }
 
 export default function HomeScreen() {
   const t = useTheme();
+  const { t: tr } = useTranslation();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
 
+  const { user } = useAuth();
   const { pets, selectedPetId, setSelectedPetId, selectedPet, isLoading: isPetsLoading } = usePet();
   const { getRecordsByDate, getRecordsByPet, getTodayRoutines, confirmRoutine, skipRoutine, isLoading: isRecordsLoading } = useRecords();
-  
+
   const [routinesModalVisible, setRoutinesModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [summaryPrefs, setSummaryPrefs] = useState<SummaryPrefs>(DEFAULT_PREFS);
+  const [summaryModalVisible, setSummaryModalVisible] = useState(false);
   const [editingRoutine, setEditingRoutine] = useState<{
     id: string;
     type: RecordType;
@@ -96,6 +83,26 @@ export default function HomeScreen() {
   
   const isLoading = isPetsLoading || isRecordsLoading;
   const isMemorialSelected = selectedPet?.status === "memorial";
+
+  // Cargar preferencias de resumen
+  const prefsKey = `${SUMMARY_PREFS_KEY}_${user?.id}`;
+  useEffect(() => {
+    if (!user) return;
+    AsyncStorage.getItem(prefsKey).then((raw) => {
+      if (raw) setSummaryPrefs({ ...DEFAULT_PREFS, ...JSON.parse(raw) });
+    });
+  }, [user, prefsKey]);
+
+  const toggleSummaryPref = useCallback(
+    (type: string) => {
+      setSummaryPrefs((prev) => {
+        const next = { ...prev, [type]: !prev[type] };
+        AsyncStorage.setItem(prefsKey, JSON.stringify(next));
+        return next;
+      });
+    },
+    [prefsKey]
+  );
   const todayRecords = getRecordsByDate(new Date(), selectedPetId);
   const todayRoutines = getTodayRoutines(selectedPetId);
   const pendingRoutines = todayRoutines.filter(r => r.status === "PENDING");
@@ -125,35 +132,40 @@ export default function HomeScreen() {
       {
         id: "s1",
         icon: getIcon("FOOD"),
-        name: prettyType("FOOD"),
-        value: foodRecords.length > 0 ? `${foodRecords.length} registradas` : "Sin registros",
+        name: tr('common.recordType.FOOD'),
+        value: foodRecords.length > 0 ? tr('home.recorded', { count: foodRecords.length }) : tr('home.noRecords'),
         type: "FOOD",
       },
       {
         id: "s2",
         icon: getIcon("POOP"),
-        name: prettyType("POOP"),
+        name: tr('common.recordType.POOP'),
         value: lastPoop
           ? `${lastPoop.getHours()}:${String(lastPoop.getMinutes()).padStart(2, "0")}h`
-          : "Sin registros",
+          : tr('home.noRecords'),
         type: "POOP",
       },
       {
         id: "s3",
         icon: getIcon("SLEEP"),
-        name: prettyType("SLEEP"),
-        value: totalSleep > 0 ? `${totalSleep} horas` : "Sin registros",
+        name: tr('common.recordType.SLEEP'),
+        value: totalSleep > 0 ? tr('home.hours', { count: totalSleep }) : tr('home.noRecords'),
         type: "SLEEP",
       },
       {
         id: "s4",
         icon: getIcon("WEIGHT"),
-        name: prettyType("WEIGHT"),
-        value: lastWeight || "Sin registros",
+        name: tr('common.recordType.WEIGHT'),
+        value: lastWeight || tr('home.noRecords'),
         type: "WEIGHT",
       },
     ];
-  }, [todayRecords, getRecordsByPet, selectedPetId]);
+  }, [todayRecords, getRecordsByPet, selectedPetId, tr]);
+
+  const visibleSummary = useMemo(
+    () => summary.filter((s) => summaryPrefs[s.type] !== false),
+    [summary, summaryPrefs]
+  );
 
   const handleConfirmRoutine = (routineId: string, defaultValue?: string, routineTime?: string) => {
     if (isMemorialSelected) return;
@@ -204,7 +216,7 @@ export default function HomeScreen() {
         renderItem={({ item }) => {
           const selected = item.id === selectedPetId;
           const memorial = item.status === "memorial";
-          const age = memorial ? "Recuerdo" : calculateAge(item.birthDate);
+          const age = memorial ? tr('home.memorial') : calculateAge(item.birthDate, tr);
 
           return (
             <AnimatedPressable
@@ -240,11 +252,11 @@ export default function HomeScreen() {
         ]}
       >
         <View style={styles.summaryLeft}>
-          <Text style={[styles.summaryTitle, { color: t.text }]}>Rutinas</Text>
+          <Text style={[styles.summaryTitle, { color: t.text }]}>{tr('home.routines')}</Text>
           <Text style={[styles.summarySub, { color: t.textMuted }]}>
             {pendingRoutines.length > 0
-              ? `${pendingRoutines.length} pendiente${pendingRoutines.length === 1 ? "" : "s"}`
-              : "Todo al día"}
+              ? tr('home.pendingRoutines', { count: pendingRoutines.length })
+              : tr('home.allDone')}
           </Text>
         </View>
 
@@ -254,7 +266,7 @@ export default function HomeScreen() {
           disabled={isMemorialSelected}
         >
           <Text style={[styles.summaryLink, { color: t.textMuted }]}>
-            Gestionar
+            {tr('home.manage')}
           </Text>
           <Icon name="chevron-forward" size={16} color={t.textMuted} />
         </Pressable>
@@ -265,7 +277,7 @@ export default function HomeScreen() {
         <>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: t.textMuted }]}>
-              RUTINAS PENDIENTES
+              {tr('home.pendingRoutinesSection')}
             </Text>
             <Text style={[styles.badge, { backgroundColor: t.accent }]}>
               {pendingRoutines.length}
@@ -278,7 +290,7 @@ export default function HomeScreen() {
                 <View style={styles.routineRow}>
                   <View style={styles.routineLeft}>
                     <Text style={[styles.routineName, { color: t.text }]}>
-                      {prettyType(routine.type)} · {routine.title}
+                      {tr('common.recordType.' + routine.type)} · {routine.title}
                     </Text>
                     <Text style={[styles.routineTime, { color: t.textMuted }]}>
                       {routine.time}
@@ -337,9 +349,18 @@ export default function HomeScreen() {
       )}
 
       {/* Resumen del día */}
-      <Text style={[styles.sectionTitle, { color: t.textMuted, marginTop: 14 }]}>
-        RESUMEN DE HOY
-      </Text>
+      <View style={[styles.sectionHeader, { marginTop: 14 }]}>
+        <Text style={[styles.sectionTitle, { color: t.textMuted }]}>
+          {tr('home.summaryTitle')}
+        </Text>
+        <AnimatedPressable
+          onPress={() => setSummaryModalVisible(true)}
+          hitSlop={10}
+          scale={0.9}
+        >
+          <Icon name="pencil" size={14} color={t.textMuted} />
+        </AnimatedPressable>
+      </View>
     </>
   );
 
@@ -359,7 +380,7 @@ export default function HomeScreen() {
           <View style={[styles.logo, { backgroundColor: t.accent }]}>
             <Icon name="paw" size={18} color="#fff" />
           </View>
-          <Text style={[styles.headerTitle, { color: t.text }]}>Inicio</Text>
+          <Text style={[styles.headerTitle, { color: t.text }]}>{tr('home.title')}</Text>
         </View>
 
         <View style={styles.headerRight}>
@@ -376,7 +397,7 @@ export default function HomeScreen() {
             onPress={() => navigation.navigate("PetForm")}
             style={[styles.addBtn, { backgroundColor: t.card, borderColor: t.border }]}
           >
-            <Text style={[styles.addBtnText, { color: t.textMuted }]}>Añadir</Text>
+            <Text style={[styles.addBtnText, { color: t.textMuted }]}>{tr('home.add')}</Text>
           </AnimatedPressable>
         </View>
       </View>
@@ -387,17 +408,17 @@ export default function HomeScreen() {
             <Icon name="paw" size={48} color={t.accent} />
           </View>
           <Text style={[styles.emptyTitle, { color: t.text }]}>
-            Añade tu primera mascota
+            {tr('home.emptyTitle')}
           </Text>
           <Text style={[styles.emptyDesc, { color: t.textMuted }]}>
-            Registra a tu compañero peludo para empezar a llevar su control de salud.
+            {tr('home.emptyDesc')}
           </Text>
           <AnimatedPressable
             onPress={() => navigation.navigate("PetForm")}
             style={[styles.emptyBtn, { backgroundColor: t.accent }]}
           >
             <Icon name="add" size={20} color="#fff" />
-            <Text style={styles.emptyBtnText}>Añadir mascota</Text>
+            <Text style={styles.emptyBtnText}>{tr('home.emptyBtn')}</Text>
           </AnimatedPressable>
         </View>
       ) : (
@@ -405,7 +426,7 @@ export default function HomeScreen() {
           style={styles.container}
           contentContainerStyle={styles.contentContainer}
           ListHeaderComponent={ListHeaderComponent}
-          data={summary}
+          data={visibleSummary}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <AnimatedPressable
@@ -435,16 +456,21 @@ export default function HomeScreen() {
           ItemSeparatorComponent={() => (
             <View style={[styles.separator, { backgroundColor: t.border }]} />
           )}
+          ListEmptyComponent={
+            <Text style={[styles.summaryEmpty, { color: t.textMuted }]}>
+              {tr('home.noCardsVisible')}
+            </Text>
+          }
           ListFooterComponent={
             <>
               {isMemorialSelected && (
                 <Text style={[styles.memorialHint, { color: t.textMuted }]}>
-                  Esta mascota está en modo recuerdo (solo lectura).
+                  {tr('home.memorialHint')}
                 </Text>
               )}
 
               <Text style={[styles.tip, { color: t.textMuted }]}>
-                Tip: mantén pulsada una mascota para editarla.
+                {tr('home.tip')}
               </Text>
             </>
           }
@@ -479,6 +505,61 @@ export default function HomeScreen() {
         mode="confirm"
         petName={selectedPet?.name}
       />
+
+      {/* Modal de personalizar resumen */}
+      <Modal
+        visible={summaryModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setSummaryModalVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setSummaryModalVisible(false)}
+        >
+          <Pressable
+            style={[styles.modalSheet, { backgroundColor: t.card }]}
+            onPress={() => {}}
+          >
+            <View style={styles.modalHandle} />
+            <Text style={[styles.modalTitle, { color: t.text }]}>
+              {tr('home.customizeSummary')}
+            </Text>
+            <Text style={[styles.modalDesc, { color: t.textMuted }]}>
+              {tr('home.customizeSummaryDesc')}
+            </Text>
+
+            {(["FOOD", "POOP", "SLEEP", "WEIGHT"] as RecordType[]).map((type) => (
+              <View
+                key={type}
+                style={[styles.prefRow, { borderBottomColor: t.border }]}
+              >
+                <View style={styles.prefLeft}>
+                  <View style={[styles.iconCircle, { backgroundColor: t.accentSoft }]}>
+                    <Icon name={getIcon(type)} size={20} color={t.accent} />
+                  </View>
+                  <Text style={[styles.prefLabel, { color: t.text }]}>
+                    {tr('common.recordType.' + type)}
+                  </Text>
+                </View>
+                <Switch
+                  value={summaryPrefs[type] !== false}
+                  onValueChange={() => toggleSummaryPref(type)}
+                  trackColor={{ false: t.border, true: t.accent }}
+                  thumbColor="#fff"
+                />
+              </View>
+            ))}
+
+            <AnimatedPressable
+              onPress={() => setSummaryModalVisible(false)}
+              style={[styles.modalCloseBtn, { backgroundColor: t.accent }]}
+            >
+              <Text style={styles.modalCloseBtnText}>{tr('common.done')}</Text>
+            </AnimatedPressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -632,6 +713,7 @@ const styles = StyleSheet.create({
 
   memorialHint: { marginTop: 10, fontSize: 12, fontWeight: "600" },
   tip: { marginTop: 10, fontSize: 12, fontWeight: "600" },
+  summaryEmpty: { fontSize: 13, fontWeight: "500", textAlign: "center", paddingVertical: 20 },
 
   emptyContainer: {
     flex: 1,
@@ -668,6 +750,65 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   emptyBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+    paddingTop: 12,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#ccc",
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  modalDesc: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 20,
+  },
+  prefRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  prefLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  prefLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  modalCloseBtn: {
+    marginTop: 24,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalCloseBtnText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "800",

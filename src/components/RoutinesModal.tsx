@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "../theme/useTheme";
 import { useRecords, RecordType, Routine } from "../app/state/RecordsContext";
 import { Icon } from "./ui/Icon";
@@ -28,18 +29,9 @@ interface RoutinesModalProps {
 
 const typeLabels: RecordType[] = ["FOOD", "POOP", "SLEEP", "WEIGHT", "NOTE"];
 
-function prettyType(t: RecordType) {
-  switch (t) {
-    case "FOOD": return "Comida";
-    case "POOP": return "Deposición";
-    case "SLEEP": return "Sueño";
-    case "WEIGHT": return "Peso";
-    case "NOTE": return "Nota";
-  }
-}
-
 export default function RoutinesModal({ visible, onClose, petId }: RoutinesModalProps) {
   const t = useTheme();
+  const { t: tr } = useTranslation();
   const insets = useSafeAreaInsets();
   const { routines, addRoutine, deleteRoutine, updateRoutine } = useRecords();
 
@@ -78,7 +70,7 @@ export default function RoutinesModal({ visible, onClose, petId }: RoutinesModal
     const value = formValue.trim();
 
     if (!title) {
-      Alert.alert("Faltan datos", "Completa al menos el título.");
+      Alert.alert(tr('editRecord.missingData'), tr('editRecord.missingDataMsg'));
       return;
     }
 
@@ -120,12 +112,12 @@ export default function RoutinesModal({ visible, onClose, petId }: RoutinesModal
 
   const handleDelete = (id: string) => {
     Alert.alert(
-      "Eliminar rutina",
-      "¿Estás seguro de que quieres eliminar esta rutina?",
+      tr('routines.deleteRoutine'),
+      tr('routines.deleteConfirm'),
       [
-        { text: "Cancelar", style: "cancel" },
+        { text: tr('common.cancel'), style: "cancel" },
         {
-          text: "Eliminar",
+          text: tr('common.delete'),
           style: "destructive",
           onPress: () => deleteRoutine(id),
         },
@@ -148,9 +140,9 @@ export default function RoutinesModal({ visible, onClose, petId }: RoutinesModal
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={[styles.title, { color: t.text }]}>Gestionar Rutinas</Text>
+            <Text style={[styles.title, { color: t.text }]}>{tr('routines.title')}</Text>
             <Text style={[styles.subtitle, { color: t.textMuted }]}>
-              {petRoutines.length} rutina{petRoutines.length !== 1 ? "s" : ""}
+              {tr('routines.count', { count: petRoutines.length })}
             </Text>
           </View>
           <AnimatedPressable onPress={onClose} hitSlop={10}>
@@ -168,10 +160,10 @@ export default function RoutinesModal({ visible, onClose, petId }: RoutinesModal
               <View style={styles.emptyContainer}>
                 <Icon name="time-outline" size={48} color={t.textMuted} />
                 <Text style={[styles.emptyText, { color: t.textMuted }]}>
-                  No hay rutinas configuradas
+                  {tr('routines.emptyTitle')}
                 </Text>
                 <Text style={[styles.emptyHint, { color: t.textMuted }]}>
-                  Añade rutinas para que te las recuerde cada día
+                  {tr('routines.emptyHint')}
                 </Text>
               </View>
             }
@@ -186,7 +178,7 @@ export default function RoutinesModal({ visible, onClose, petId }: RoutinesModal
                 <View style={styles.routineMain}>
                   <View style={styles.routineInfo}>
                     <Text style={[styles.routineTitle, { color: t.text }]}>
-                      {prettyType(item.type)} · {item.title}
+                      {tr('common.recordTypeSingular.' + item.type)} · {item.title}
                     </Text>
                     <Text style={[styles.routineMeta, { color: t.textMuted }]}>
                       {item.time}
@@ -194,7 +186,7 @@ export default function RoutinesModal({ visible, onClose, petId }: RoutinesModal
                     </Text>
                     {!item.active && (
                       <Text style={[styles.inactiveLabel, { color: t.textMuted }]}>
-                        Desactivada
+                        {tr('routines.disabled')}
                       </Text>
                     )}
                   </View>
@@ -243,7 +235,7 @@ export default function RoutinesModal({ visible, onClose, petId }: RoutinesModal
         {/* Formulario */}
         {showAddForm && (
           <ScrollView style={styles.formContainer} contentContainerStyle={{ paddingBottom: 20 }}>
-            <Text style={[styles.label, { color: t.textMuted }]}>TIPO</Text>
+            <Text style={[styles.label, { color: t.textMuted }]}>{tr('routines.type')}</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -265,23 +257,23 @@ export default function RoutinesModal({ visible, onClose, petId }: RoutinesModal
                     scale={0.95}
                   >
                     <Text style={[styles.typeText, { color: active ? t.accent : t.textMuted }]}>
-                      {prettyType(tp)}
+                      {tr('common.recordTypeSingular.' + tp)}
                     </Text>
                   </AnimatedPressable>
                 );
               })}
             </ScrollView>
 
-            <Text style={[styles.label, { color: t.textMuted }]}>TÍTULO *</Text>
+            <Text style={[styles.label, { color: t.textMuted }]}>{tr('routines.titleLabel')}</Text>
             <TextInput
               value={formTitle}
               onChangeText={setFormTitle}
-              placeholder="Ej: Pienso, Paseo..."
+              placeholder={tr('routines.titlePlaceholder')}
               placeholderTextColor={t.textMuted}
               style={[styles.input, { color: t.text, borderColor: t.border, backgroundColor: t.card }]}
             />
 
-            <Text style={[styles.label, { color: t.textMuted }]}>HORA *</Text>
+            <Text style={[styles.label, { color: t.textMuted }]}>{tr('routines.timeLabel')}</Text>
             <Pressable
               onPress={() => setShowTimePicker(true)}
               style={[styles.input, styles.timeInput, { borderColor: t.border, backgroundColor: t.card }]}
@@ -301,17 +293,17 @@ export default function RoutinesModal({ visible, onClose, petId }: RoutinesModal
               />
             )}
 
-            <Text style={[styles.label, { color: t.textMuted }]}>VALOR POR DEFECTO (opcional)</Text>
+            <Text style={[styles.label, { color: t.textMuted }]}>{tr('routines.defaultValue')}</Text>
             <TextInput
               value={formValue}
               onChangeText={setFormValue}
-              placeholder="Ej: 30g, 45min..."
+              placeholder={tr('routines.defaultValuePlaceholder')}
               placeholderTextColor={t.textMuted}
               style={[styles.input, { color: t.text, borderColor: t.border, backgroundColor: t.card }]}
             />
 
             <Text style={[styles.hint, { color: t.textMuted }]}>
-              💡 Esta rutina aparecerá cada día en Inicio para que la confirmes rápidamente.
+              {"💡 "}{tr('routines.hint')}
             </Text>
           </ScrollView>
         )}
@@ -325,7 +317,7 @@ export default function RoutinesModal({ visible, onClose, petId }: RoutinesModal
               scale={0.96}
             >
               <Icon name="add" size={24} color="#fff" />
-              <Text style={styles.addBtnText}>Nueva Rutina</Text>
+              <Text style={styles.addBtnText}>{tr('routines.newRoutine')}</Text>
             </AnimatedPressable>
           ) : (
             <View style={styles.formActions}>
@@ -334,7 +326,7 @@ export default function RoutinesModal({ visible, onClose, petId }: RoutinesModal
                 style={[styles.cancelBtn, { backgroundColor: t.card, borderColor: t.border }]}
                 scale={0.96}
               >
-                <Text style={{ color: t.textMuted, fontWeight: "700" }}>Cancelar</Text>
+                <Text style={{ color: t.textMuted, fontWeight: "700" }}>{tr('common.cancel')}</Text>
               </AnimatedPressable>
 
               <AnimatedPressable
@@ -343,7 +335,7 @@ export default function RoutinesModal({ visible, onClose, petId }: RoutinesModal
                 scale={0.96}
               >
                 <Text style={{ color: "#fff", fontWeight: "800" }}>
-                  {editingId ? "Guardar" : "Crear Rutina"}
+                  {editingId ? tr('common.save') : tr('routines.createRoutine')}
                 </Text>
               </AnimatedPressable>
             </View>

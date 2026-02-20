@@ -15,6 +15,9 @@ import * as Notifications from "expo-notifications";
 import { File as FSFile, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import * as DocumentPicker from "expo-document-picker";
+import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
+import { changeLanguage, getCurrentLanguageLabel } from '../i18n';
 import { useTheme } from "../theme/useTheme";
 import { shadows } from "../theme/tokens";
 import { useThemeMode, ThemeMode } from "../app/state/ThemeContext";
@@ -44,6 +47,7 @@ interface SettingRowProps {
 
 function SettingRow({ icon, title, subtitle, onPress, rightElement, danger, locked }: SettingRowProps) {
   const t = useTheme();
+  const { t: tr } = useTranslation();
 
   return (
     <AnimatedPressable
@@ -65,7 +69,7 @@ function SettingRow({ icon, title, subtitle, onPress, rightElement, danger, lock
           {locked && (
             <View style={[styles.premiumBadge, { backgroundColor: t.accentSoft }]}>
               <Icon name="diamond" size={12} color={t.accent} />
-              <Text style={[styles.premiumBadgeText, { color: t.accent }]}>Premium</Text>
+              <Text style={[styles.premiumBadgeText, { color: t.accent }]}>{tr('premium.badge')}</Text>
             </View>
           )}
         </View>
@@ -79,14 +83,9 @@ function SettingRow({ icon, title, subtitle, onPress, rightElement, danger, lock
   );
 }
 
-const themeModeLabels: Record<ThemeMode, string> = {
-  system: "Sistema",
-  light: "Claro",
-  dark: "Oscuro",
-};
-
 export default function SettingsScreen() {
   const t = useTheme();
+  const { t: tr } = useTranslation();
   const { themeMode, setThemeMode } = useThemeMode();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
@@ -100,13 +99,21 @@ export default function SettingsScreen() {
   const { vaccines } = useVaccines();
   const [privacyVisible, setPrivacyVisible] = useState(false);
 
+  const themeModeLabel = (mode: ThemeMode) => {
+    switch (mode) {
+      case 'system': return tr('settings.themeSystem');
+      case 'light': return tr('settings.themeLight');
+      case 'dark': return tr('settings.themeDark');
+    }
+  };
+
   const handleToggleNotifications = async (value: boolean) => {
     if (value && !hasPermission) {
       const granted = await requestPermission();
       if (!granted) {
         Alert.alert(
-          "Permisos necesarios",
-          "Para recibir notificaciones, debes permitir el acceso en los ajustes de tu dispositivo."
+          tr('settings.permissionsNeeded'),
+          tr('settings.permissionsMsg')
         );
         return;
       }
@@ -128,19 +135,19 @@ export default function SettingsScreen() {
       return;
     }
     const options = [
-      { text: "1 día antes", value: 1 },
-      { text: "3 días antes", value: 3 },
-      { text: "7 días antes", value: 7 },
+      { text: tr('settings.daysBefore', { count: 1 }), value: 1 },
+      { text: tr('settings.daysBefore', { count: 3 }), value: 3 },
+      { text: tr('settings.daysBefore', { count: 7 }), value: 7 },
     ];
     Alert.alert(
-      "Días de antelación",
-      "¿Con cuántos días de antelación quieres recibir recordatorios?",
+      tr('settings.reminderDaysTitle'),
+      tr('settings.reminderDaysMsg'),
       [
         ...options.map(opt => ({
-          text: opt.text + (notificationSettings.reminderDaysBefore === opt.value ? " ✓" : ""),
+          text: opt.text + (notificationSettings.reminderDaysBefore === opt.value ? " \u2713" : ""),
           onPress: () => updateSettings({ reminderDaysBefore: opt.value }),
         })),
-        { text: "Cancelar", style: "cancel" as const },
+        { text: tr('common.cancel'), style: "cancel" as const },
       ]
     );
   };
@@ -157,14 +164,14 @@ export default function SettingsScreen() {
       { text: "6:00 PM", value: 18 },
     ];
     Alert.alert(
-      "Hora del recordatorio",
-      "¿A qué hora prefieres recibir los recordatorios?",
+      tr('settings.reminderHourTitle'),
+      tr('settings.reminderHourMsg'),
       [
         ...options.map(opt => ({
-          text: opt.text + (notificationSettings.reminderHour === opt.value ? " ✓" : ""),
+          text: opt.text + (notificationSettings.reminderHour === opt.value ? " \u2713" : ""),
           onPress: () => updateSettings({ reminderHour: opt.value }),
         })),
-        { text: "Cancelar", style: "cancel" as const },
+        { text: tr('common.cancel'), style: "cancel" as const },
       ]
     );
   };
@@ -182,45 +189,64 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleChangeLanguage = () => {
+    Alert.alert(
+      tr('settings.language'),
+      tr('settings.languageDesc'),
+      [
+        { text: 'Español', onPress: () => changeLanguage('es') },
+        { text: 'English', onPress: () => changeLanguage('en') },
+        { text: 'Français', onPress: () => changeLanguage('fr') },
+        { text: 'Português', onPress: () => changeLanguage('pt') },
+        { text: 'Català', onPress: () => changeLanguage('ca') },
+        { text: 'Euskara', onPress: () => changeLanguage('eu') },
+        { text: 'Galego', onPress: () => changeLanguage('gl') },
+        { text: 'Türkçe', onPress: () => changeLanguage('tr') },
+        { text: tr('settings.languageAuto'), onPress: () => changeLanguage('auto') },
+        { text: tr('common.cancel'), style: 'cancel' },
+      ]
+    );
+  };
+
   const handleExportData = () => {
     if (!isPremium) {
       (navigation as any).navigate("Premium");
       return;
     }
     Alert.alert(
-      "Exportar datos",
-      "Se generará un archivo CSV con todos los datos de tus mascotas. ¿Continuar?",
+      tr('settings.exportTitle'),
+      tr('settings.exportMsg'),
       [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Exportar", onPress: doExportCSV },
+        { text: tr('common.cancel'), style: "cancel" },
+        { text: tr('settings.export'), onPress: doExportCSV },
       ]
     );
   };
 
   const doExportCSV = async () => {
     try {
-      let csv = "=== MASCOTAS ===\n";
-      csv += "Nombre,Tipo,Estado,Fecha nacimiento\n";
+      let csv = tr('settings.csvPets') + "\n";
+      csv += tr('settings.csvPetsHeader') + "\n";
       pets.forEach(p => {
         csv += `"${p.name}","${p.type}","${p.status}","${p.birthDate || ""}"\n`;
       });
 
-      csv += "\n=== REGISTROS ===\n";
-      csv += "Mascota,Tipo,Titulo,Valor,Fecha,Fuente\n";
+      csv += "\n" + tr('settings.csvRecords') + "\n";
+      csv += tr('settings.csvRecordsHeader') + "\n";
       records.forEach(r => {
         const pet = pets.find(p => p.id === r.petId);
         csv += `"${pet?.name || ""}","${r.type}","${r.title}","${r.value}","${r.timestamp}","${r.source}"\n`;
       });
 
-      csv += "\n=== RUTINAS ===\n";
-      csv += "Mascota,Tipo,Titulo,Hora,Activa\n";
+      csv += "\n" + tr('settings.csvRoutines') + "\n";
+      csv += tr('settings.csvRoutinesHeader') + "\n";
       routines.forEach(r => {
         const pet = pets.find(p => p.id === r.petId);
         csv += `"${pet?.name || ""}","${r.type}","${r.title}","${r.time}","${r.active}"\n`;
       });
 
-      csv += "\n=== VISITAS VETERINARIAS ===\n";
-      csv += "Mascota,Tipo,Fecha,Veterinario,Motivo,Notas\n";
+      csv += "\n" + tr('settings.csvVetVisits') + "\n";
+      csv += tr('settings.csvVetVisitsHeader') + "\n";
       visits.forEach(v => {
         const pet = pets.find(p => p.id === v.petId);
         csv += `"${pet?.name || ""}","${v.type}","${v.date}","${v.veterinarian}","${v.reason}","${v.notes}"\n`;
@@ -228,9 +254,9 @@ export default function SettingsScreen() {
 
       const file = new FSFile(Paths.cache, "catacapp_export.csv");
       file.write(csv);
-      await Sharing.shareAsync(file.uri, { mimeType: "text/csv", dialogTitle: "Exportar datos CatacApp" });
+      await Sharing.shareAsync(file.uri, { mimeType: "text/csv", dialogTitle: tr('settings.exportDialogTitle') });
     } catch (error) {
-      Alert.alert("Error", "No se pudieron exportar los datos. Inténtalo de nuevo.");
+      Alert.alert(tr('common.error'), tr('settings.exportError'));
     }
   };
 
@@ -240,11 +266,11 @@ export default function SettingsScreen() {
       return;
     }
     Alert.alert(
-      "Crear backup",
-      "Se generará un archivo con todos tus datos que podrás guardar en Google Drive, iCloud u otro servicio. ¿Continuar?",
+      tr('settings.createBackupTitle'),
+      tr('settings.createBackupMsg'),
       [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Crear backup", onPress: doCreateBackup },
+        { text: tr('common.cancel'), style: "cancel" },
+        { text: tr('settings.createBackup'), onPress: doCreateBackup },
       ]
     );
   };
@@ -268,9 +294,9 @@ export default function SettingsScreen() {
       const date = new Date().toISOString().slice(0, 10);
       const file = new FSFile(Paths.cache, `catacapp_backup_${date}.json`);
       file.write(json);
-      await Sharing.shareAsync(file.uri, { mimeType: "application/json", dialogTitle: "Backup CatacApp" });
+      await Sharing.shareAsync(file.uri, { mimeType: "application/json", dialogTitle: tr('settings.backupDialogTitle') });
     } catch (error) {
-      Alert.alert("Error", "No se pudo crear el backup. Inténtalo de nuevo.");
+      Alert.alert(tr('common.error'), tr('settings.backupError'));
     }
   };
 
@@ -280,11 +306,11 @@ export default function SettingsScreen() {
       return;
     }
     Alert.alert(
-      "Restaurar backup",
-      "Esto reemplazará TODOS tus datos actuales con los del backup. ¿Estás seguro?",
+      tr('settings.restoreBackupTitle'),
+      tr('settings.restoreBackupMsg'),
       [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Restaurar", style: "destructive", onPress: doRestoreBackup },
+        { text: tr('common.cancel'), style: "cancel" },
+        { text: tr('settings.restore'), style: "destructive", onPress: doRestoreBackup },
       ]
     );
   };
@@ -300,12 +326,12 @@ export default function SettingsScreen() {
 
       const fileUri = result.assets[0].uri;
       const file = new FSFile(fileUri);
-      const content = file.text();
+      const content = await file.text();
       const backup = JSON.parse(content);
 
       // Validar estructura del backup
       if (!backup.version || !backup.data || !backup.data.pets) {
-        Alert.alert("Error", "El archivo seleccionado no es un backup válido de CatacApp.");
+        Alert.alert(tr('common.error'), tr('settings.restoreInvalid'));
         return;
       }
 
@@ -327,13 +353,18 @@ export default function SettingsScreen() {
       ]);
 
       Alert.alert(
-        "Backup restaurado",
-        `Se restauraron ${bPets?.length || 0} mascotas, ${bRecords?.length || 0} registros, ${bVisits?.length || 0} citas y ${bVaccines?.length || 0} vacunas. Se cerrará la sesión para aplicar los cambios.`,
-        [{ text: "OK", onPress: () => logout() }]
+        tr('settings.restoreSuccess'),
+        tr('settings.restoreSuccessMsg', {
+          pets: bPets?.length || 0,
+          records: bRecords?.length || 0,
+          visits: bVisits?.length || 0,
+          vaccines: bVaccines?.length || 0,
+        }),
+        [{ text: tr('common.ok'), onPress: () => logout() }]
       );
     } catch (error) {
       console.error("Error restoring backup:", error);
-      Alert.alert("Error", "No se pudo restaurar el backup. Verifica que el archivo sea válido.");
+      Alert.alert(tr('common.error'), tr('settings.restoreError'));
     }
   };
 
@@ -343,12 +374,12 @@ export default function SettingsScreen() {
 
   const handleClearData = () => {
     Alert.alert(
-      "Borrar todos los datos",
-      "¿Estás seguro? Esta acción eliminará permanentemente todas tus mascotas, registros, vacunas, citas y configuración. No se puede deshacer.",
+      tr('settings.clearDataTitle'),
+      tr('settings.clearDataMsg'),
       [
-        { text: "Cancelar", style: "cancel" },
+        { text: tr('common.cancel'), style: "cancel" },
         {
-          text: "Borrar todo",
+          text: tr('settings.clearAll'),
           style: "destructive",
           onPress: async () => {
             try {
@@ -372,13 +403,13 @@ export default function SettingsScreen() {
 
               // Logout para reiniciar todos los contextos
               Alert.alert(
-                "Datos borrados",
-                "Todos los datos han sido eliminados. Se cerrará la sesión.",
-                [{ text: "OK", onPress: () => logout() }]
+                tr('settings.clearSuccess'),
+                tr('settings.clearSuccessMsg'),
+                [{ text: tr('common.ok'), onPress: () => logout() }]
               );
             } catch (error) {
               console.error("Error clearing data:", error);
-              Alert.alert("Error", "No se pudieron borrar los datos.");
+              Alert.alert(tr('common.error'), tr('settings.clearError'));
             }
           },
         },
@@ -388,12 +419,12 @@ export default function SettingsScreen() {
 
   const handleLogout = () => {
     Alert.alert(
-      "Cerrar sesión",
-      "¿Estás seguro de que quieres cerrar sesión?",
+      tr('settings.logoutTitle'),
+      tr('settings.logoutMsg'),
       [
-        { text: "Cancelar", style: "cancel" },
+        { text: tr('common.cancel'), style: "cancel" },
         {
-          text: "Cerrar sesión",
+          text: tr('settings.logout'),
           style: "destructive",
           onPress: logout,
         },
@@ -407,19 +438,19 @@ export default function SettingsScreen() {
 
   const handleCancelSubscription = () => {
     Alert.alert(
-      "Cancelar suscripción",
-      "¿Estás seguro de que quieres cancelar tu suscripción Premium? Perderás acceso a todas las funciones premium.",
+      tr('settings.cancelSubscriptionTitle'),
+      tr('settings.cancelSubscriptionMsg'),
       [
-        { text: "No, mantener", style: "cancel" },
+        { text: tr('settings.keepPlan'), style: "cancel" },
         {
-          text: "Sí, cancelar",
+          text: tr('settings.yesCancelPlan'),
           style: "destructive",
           onPress: async () => {
             const result = await cancelSubscription();
             if (result.success) {
-              Alert.alert("Suscripción cancelada", "Tu suscripción ha sido cancelada. Gracias por haber sido Premium.");
+              Alert.alert(tr('settings.subscriptionCancelled'), tr('settings.subscriptionCancelledMsg'));
             } else {
-              Alert.alert("Error", result.error || "No se pudo cancelar la suscripción");
+              Alert.alert(tr('common.error'), result.error || tr('auth.errors.cancelError'));
             }
           },
         },
@@ -428,7 +459,7 @@ export default function SettingsScreen() {
   };
 
   const handleContactSupport = () => {
-    Linking.openURL("mailto:soporte@catacapp.com?subject=Soporte%20CatacApp");
+    Linking.openURL(`mailto:soporte@catacapp.com?subject=${encodeURIComponent(tr('settings.supportSubject'))}`);
   };
 
   const handlePrivacyPolicy = () => {
@@ -440,31 +471,31 @@ export default function SettingsScreen() {
     if (!hasPermission) {
       const granted = await requestPermission();
       if (!granted) {
-        Alert.alert("Permisos necesarios", "Debes permitir notificaciones para probar esta función.");
+        Alert.alert(tr('settings.permissionsNeeded'), tr('settings.permissionsTestMsg'));
         return;
       }
     }
 
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: "Notificación de prueba",
-        body: "¡Las notificaciones funcionan correctamente!",
+        title: tr('notifications.testTitle'),
+        body: tr('notifications.testBody'),
         sound: true,
       },
       trigger: null, // null = inmediata
     });
 
-    Alert.alert("Enviada", "Se ha enviado una notificación de prueba.");
+    Alert.alert(tr('settings.testSent'), tr('settings.testSentMsg'));
   };
 
   // TEST: Mostrar intersticial de prueba
   const handleTestInterstitial = () => {
     if (!showAds) {
-      Alert.alert("Premium activo", "Los anuncios están desactivados porque tienes Premium.");
+      Alert.alert(tr('settings.premiumActive'), tr('settings.premiumAdsMsg'));
       return;
     }
     showInterstitial();
-    Alert.alert("Intersticial", "Si el anuncio estaba cargado, debería haberse mostrado. Si no apareció, espera unos segundos y vuelve a intentarlo.");
+    Alert.alert(tr('settings.testInterstitial'), tr('settings.interstitialMsg'));
   };
 
   return (
@@ -475,7 +506,7 @@ export default function SettingsScreen() {
           <View style={[styles.logo, { backgroundColor: t.accent }]}>
             <Icon name="paw" size={18} color="#fff" />
           </View>
-          <Text style={[styles.headerTitle, { color: t.text }]}>Ajustes</Text>
+          <Text style={[styles.headerTitle, { color: t.text }]}>{tr('settings.title')}</Text>
         </View>
       </View>
 
@@ -485,20 +516,20 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Cuenta */}
-        <Text style={[styles.sectionTitle, { color: t.textMuted }]}>CUENTA</Text>
+        <Text style={[styles.sectionTitle, { color: t.textMuted }]}>{tr('settings.account')}</Text>
         <View style={[styles.sectionCard, { backgroundColor: t.card, borderColor: t.border, ...shadows.sm }]}>
           <View style={styles.accountRow}>
             <View style={[styles.avatarCircle, { backgroundColor: t.accentSoft }]}>
               <Icon name="person" size={24} color={t.accent} />
             </View>
             <View style={styles.accountInfo}>
-              <Text style={[styles.accountName, { color: t.text }]}>{user?.name || "Usuario"}</Text>
+              <Text style={[styles.accountName, { color: t.text }]}>{user?.name || tr('settings.user')}</Text>
               <Text style={[styles.accountEmail, { color: t.textMuted }]}>{user?.email}</Text>
             </View>
             {isPremium && (
               <View style={[styles.premiumChip, { backgroundColor: t.accent }]}>
                 <Icon name="diamond" size={14} color="#fff" />
-                <Text style={styles.premiumChipText}>Premium</Text>
+                <Text style={styles.premiumChipText}>{tr('premium.badge')}</Text>
               </View>
             )}
           </View>
@@ -514,9 +545,9 @@ export default function SettingsScreen() {
               <View style={styles.premiumBannerContent}>
                 <Icon name="diamond" size={28} color="#fff" />
                 <View style={styles.premiumBannerText}>
-                  <Text style={styles.premiumBannerTitle}>Hazte Premium</Text>
+                  <Text style={styles.premiumBannerTitle}>{tr('settings.goPremium')}</Text>
                   <Text style={styles.premiumBannerSubtitle}>
-                    Desbloquea gráficos, exportación y más
+                    {tr('settings.goPremiumDesc')}
                   </Text>
                 </View>
               </View>
@@ -529,17 +560,17 @@ export default function SettingsScreen() {
           <View style={[styles.sectionCard, { backgroundColor: t.card, borderColor: t.border }]}>
             <SettingRow
               icon="diamond"
-              title="Plan Premium"
-              subtitle={premiumStatus.plan === 'lifetime' ? 'De por vida' :
-                       premiumStatus.plan === 'yearly' ? 'Anual' :
-                       premiumStatus.plan === 'monthly' ? 'Mensual' : 'Activo'}
+              title={tr('settings.planPremium')}
+              subtitle={premiumStatus.plan === 'lifetime' ? tr('settings.planLifetime') :
+                       premiumStatus.plan === 'yearly' ? tr('settings.planYearly') :
+                       premiumStatus.plan === 'monthly' ? tr('settings.planMonthly') : tr('settings.planActive')}
               onPress={handleManageSubscription}
             />
             <View style={[styles.rowDivider, { backgroundColor: t.border }]} />
             <SettingRow
               icon="close-circle"
-              title="Cancelar suscripción"
-              subtitle="Volver al plan gratuito"
+              title={tr('settings.cancelSubscription')}
+              subtitle={tr('settings.cancelSubscriptionDesc')}
               onPress={handleCancelSubscription}
               danger
             />
@@ -547,16 +578,16 @@ export default function SettingsScreen() {
         )}
 
         {/* Apariencia */}
-        <Text style={[styles.sectionTitle, { color: t.textMuted }]}>APARIENCIA</Text>
+        <Text style={[styles.sectionTitle, { color: t.textMuted }]}>{tr('settings.appearance')}</Text>
         <View style={[styles.sectionCard, { backgroundColor: t.card, borderColor: t.border, ...shadows.sm }]}>
           <View style={styles.settingRow}>
             <View style={[styles.settingIcon, { backgroundColor: t.accentSoft }]}>
               <Icon name="color-palette" size={20} color={t.accent} />
             </View>
             <View style={styles.settingContent}>
-              <Text style={[styles.settingTitle, { color: t.text }]}>Tema</Text>
+              <Text style={[styles.settingTitle, { color: t.text }]}>{tr('settings.theme')}</Text>
               <Text style={[styles.settingSubtitle, { color: t.textMuted }]}>
-                Elige cómo se ve la app
+                {tr('settings.themeDesc')}
               </Text>
             </View>
           </View>
@@ -585,20 +616,30 @@ export default function SettingsScreen() {
                     { color: themeMode === mode ? t.accent : t.textMuted },
                   ]}
                 >
-                  {themeModeLabels[mode]}
+                  {themeModeLabel(mode)}
                 </Text>
               </AnimatedPressable>
             ))}
           </View>
         </View>
 
+        {/* Language selector */}
+        <View style={[styles.sectionCard, { backgroundColor: t.card, borderColor: t.border, ...shadows.sm, marginTop: 10 }]}>
+          <SettingRow
+            icon="language"
+            title={tr('settings.language')}
+            subtitle={getCurrentLanguageLabel()}
+            onPress={handleChangeLanguage}
+          />
+        </View>
+
         {/* Notificaciones */}
-        <Text style={[styles.sectionTitle, { color: t.textMuted }]}>NOTIFICACIONES</Text>
+        <Text style={[styles.sectionTitle, { color: t.textMuted }]}>{tr('settings.notifications')}</Text>
         <View style={[styles.sectionCard, { backgroundColor: t.card, borderColor: t.border }]}>
           <SettingRow
             icon="notifications"
-            title="Notificaciones"
-            subtitle="Activar todas las notificaciones"
+            title={tr('settings.notificationsTitle')}
+            subtitle={tr('settings.notificationsDesc')}
             rightElement={
               <Switch
                 value={notificationSettings.enabled}
@@ -611,8 +652,8 @@ export default function SettingsScreen() {
           <View style={[styles.rowDivider, { backgroundColor: t.border }]} />
           <SettingRow
             icon="shield-checkmark"
-            title="Recordatorios de vacunas"
-            subtitle="Notificar próximas vacunas"
+            title={tr('settings.vaccineReminders')}
+            subtitle={tr('settings.vaccineRemindersDesc')}
             rightElement={
               <Switch
                 value={notificationSettings.vaccineReminders && notificationSettings.enabled}
@@ -626,8 +667,8 @@ export default function SettingsScreen() {
           <View style={[styles.rowDivider, { backgroundColor: t.border }]} />
           <SettingRow
             icon="medkit"
-            title="Citas veterinarias"
-            subtitle="Notificar próximas citas"
+            title={tr('settings.vetReminders')}
+            subtitle={tr('settings.vetRemindersDesc')}
             rightElement={
               <Switch
                 value={notificationSettings.vetReminders && notificationSettings.enabled}
@@ -641,15 +682,15 @@ export default function SettingsScreen() {
           <View style={[styles.rowDivider, { backgroundColor: t.border }]} />
           <SettingRow
             icon="time"
-            title="Días de antelación"
-            subtitle={`${notificationSettings.reminderDaysBefore ?? 1} día${(notificationSettings.reminderDaysBefore ?? 1) > 1 ? "s" : ""} antes`}
+            title={tr('settings.reminderDays')}
+            subtitle={tr('settings.daysBefore', { count: notificationSettings.reminderDaysBefore ?? 1 })}
             onPress={handleChangeReminderDays}
             locked={!isPremium}
           />
           <View style={[styles.rowDivider, { backgroundColor: t.border }]} />
           <SettingRow
             icon="alarm"
-            title="Hora del recordatorio"
+            title={tr('settings.reminderHour')}
             subtitle={`${(notificationSettings.reminderHour ?? 10).toString().padStart(2, "0")}:00`}
             onPress={handleChangeReminderHour}
             locked={!isPremium}
@@ -657,8 +698,8 @@ export default function SettingsScreen() {
           <View style={[styles.rowDivider, { backgroundColor: t.border }]} />
           <SettingRow
             icon="refresh"
-            title="Recordar rutinas diarias"
-            subtitle="Notificación diaria para completar rutinas"
+            title={tr('settings.routineReminders')}
+            subtitle={tr('settings.routineRemindersDesc')}
             locked={!isPremium}
             rightElement={
               <Switch
@@ -673,72 +714,72 @@ export default function SettingsScreen() {
           <View style={[styles.rowDivider, { backgroundColor: t.border }]} />
           <SettingRow
             icon="flask"
-            title="Probar notificación"
-            subtitle="Enviar notificación de prueba"
+            title={tr('settings.testNotification')}
+            subtitle={tr('settings.testNotificationDesc')}
             onPress={handleTestNotification}
           />
           <View style={[styles.rowDivider, { backgroundColor: t.border }]} />
           <SettingRow
             icon="tv"
-            title="Probar intersticial"
-            subtitle="Mostrar anuncio intersticial"
+            title={tr('settings.testInterstitial')}
+            subtitle={tr('settings.testInterstitialDesc')}
             onPress={handleTestInterstitial}
           />
         </View>
 
         {/* Más opciones */}
-        <Text style={[styles.sectionTitle, { color: t.textMuted }]}>MÁS OPCIONES</Text>
+        <Text style={[styles.sectionTitle, { color: t.textMuted }]}>{tr('settings.moreOptions')}</Text>
         <View style={[styles.sectionCard, { backgroundColor: t.card, borderColor: t.border }]}>
           <SettingRow
             icon="stats-chart"
-            title="Gráficos"
+            title={tr('settings.charts')}
             onPress={handleViewCharts}
             locked={!isPremium}
           />
           <View style={[styles.rowDivider, { backgroundColor: t.border }]} />
           <SettingRow
             icon="download"
-            title="Exportar datos"
-            subtitle="Generar archivo CSV"
+            title={tr('settings.exportData')}
+            subtitle={tr('settings.exportDataDesc')}
             onPress={handleExportData}
             locked={!isPremium}
           />
           <View style={[styles.rowDivider, { backgroundColor: t.border }]} />
           <SettingRow
             icon="cloud-upload"
-            title="Crear backup"
-            subtitle="Guardar copia de seguridad"
+            title={tr('settings.createBackup')}
+            subtitle={tr('settings.createBackupDesc')}
             onPress={handleCreateBackup}
             locked={!isPremium}
           />
           <View style={[styles.rowDivider, { backgroundColor: t.border }]} />
           <SettingRow
             icon="cloud-download"
-            title="Restaurar backup"
-            subtitle="Importar copia de seguridad"
+            title={tr('settings.restoreBackup')}
+            subtitle={tr('settings.restoreBackupDesc')}
             onPress={handleRestoreBackup}
             locked={!isPremium}
           />
           <View style={[styles.rowDivider, { backgroundColor: t.border }]} />
           <SettingRow
             icon="mail"
-            title="Contactar soporte"
+            title={tr('settings.contactSupport')}
             onPress={handleContactSupport}
           />
           <View style={[styles.rowDivider, { backgroundColor: t.border }]} />
           <SettingRow
             icon="document-text"
-            title="Política de privacidad"
+            title={tr('settings.privacyPolicy')}
             onPress={handlePrivacyPolicy}
           />
         </View>
 
         {/* Zona de peligro */}
-        <Text style={[styles.sectionTitle, { color: t.textMuted }]}>ZONA DE PELIGRO</Text>
+        <Text style={[styles.sectionTitle, { color: t.textMuted }]}>{tr('settings.dangerZone')}</Text>
         <View style={[styles.sectionCard, { backgroundColor: t.card, borderColor: t.border }]}>
           <SettingRow
             icon="trash"
-            title="Borrar todos los datos"
+            title={tr('settings.clearData')}
             onPress={handleClearData}
             danger
           />
@@ -748,7 +789,7 @@ export default function SettingsScreen() {
         <View style={[styles.sectionCard, { backgroundColor: t.card, borderColor: t.border, marginTop: 20 }]}>
           <SettingRow
             icon="log-out"
-            title="Cerrar sesión"
+            title={tr('settings.logout')}
             onPress={handleLogout}
             danger
           />
@@ -775,7 +816,7 @@ export default function SettingsScreen() {
           ]}
         >
           <View style={styles.privacyHeader}>
-            <Text style={[styles.privacyTitle, { color: t.text }]}>Política de privacidad</Text>
+            <Text style={[styles.privacyTitle, { color: t.text }]}>{tr('settings.privacy.title')}</Text>
             <AnimatedPressable onPress={() => setPrivacyVisible(false)} hitSlop={10}>
               <Icon name="close" size={24} color={t.textMuted} />
             </AnimatedPressable>
@@ -783,49 +824,49 @@ export default function SettingsScreen() {
 
           <ScrollView style={styles.privacyScroll} showsVerticalScrollIndicator={false}>
             <Text style={[styles.privacyDate, { color: t.textMuted }]}>
-              Última actualización: 18 de febrero de 2026
+              {tr('settings.privacy.lastUpdate')}
             </Text>
 
             <Text style={[styles.privacySectionTitle, { color: t.text }]}>
-              1. Datos que recopilamos
+              {tr('settings.privacy.section1Title')}
             </Text>
             <Text style={[styles.privacyBody, { color: t.textMuted }]}>
-              CatacApp recopila únicamente la información que proporcionas voluntariamente: nombre de usuario, datos de tus mascotas (nombre, tipo, fecha de nacimiento, avatar), registros de salud (comidas, deposiciones, sueño, peso, notas), vacunas y citas veterinarias.
+              {tr('settings.privacy.section1Body')}
             </Text>
 
             <Text style={[styles.privacySectionTitle, { color: t.text }]}>
-              2. Almacenamiento local
+              {tr('settings.privacy.section2Title')}
             </Text>
             <Text style={[styles.privacyBody, { color: t.textMuted }]}>
-              Todos tus datos se almacenan localmente en tu dispositivo mediante AsyncStorage. No se envían a servidores externos ni se sincronizan con la nube. Si desinstalas la aplicación, tus datos se eliminarán permanentemente.
+              {tr('settings.privacy.section2Body')}
             </Text>
 
             <Text style={[styles.privacySectionTitle, { color: t.text }]}>
-              3. Terceros
+              {tr('settings.privacy.section3Title')}
             </Text>
             <Text style={[styles.privacyBody, { color: t.textMuted }]}>
-              No compartimos, vendemos ni transferimos tu información personal a terceros. La app utiliza Google AdMob para mostrar anuncios a usuarios gratuitos, el cual puede recopilar identificadores publicitarios anónimos conforme a su propia política de privacidad.
+              {tr('settings.privacy.section3Body')}
             </Text>
 
             <Text style={[styles.privacySectionTitle, { color: t.text }]}>
-              4. Notificaciones
+              {tr('settings.privacy.section4Title')}
             </Text>
             <Text style={[styles.privacyBody, { color: t.textMuted }]}>
-              Si otorgas permiso, CatacApp programa notificaciones locales para recordatorios de vacunas, citas veterinarias y rutinas. Estas notificaciones se procesan en tu dispositivo y no requieren conexión a internet.
+              {tr('settings.privacy.section4Body')}
             </Text>
 
             <Text style={[styles.privacySectionTitle, { color: t.text }]}>
-              5. Tus derechos
+              {tr('settings.privacy.section5Title')}
             </Text>
             <Text style={[styles.privacyBody, { color: t.textMuted }]}>
-              Puedes eliminar todos tus datos en cualquier momento desde Ajustes {">"} Zona de Peligro {">"} Borrar todos los datos. También puedes eliminar mascotas individuales y sus registros asociados.
+              {tr('settings.privacy.section5Body')}
             </Text>
 
             <Text style={[styles.privacySectionTitle, { color: t.text }]}>
-              6. Contacto
+              {tr('settings.privacy.section6Title')}
             </Text>
             <Text style={[styles.privacyBody, { color: t.textMuted }]}>
-              Si tienes preguntas sobre esta política, escríbenos a soporte@catacapp.com.
+              {tr('settings.privacy.section6Body')}
             </Text>
           </ScrollView>
         </View>

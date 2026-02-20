@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
 import { useNotifications } from './NotificationContext';
 import { usePet } from './PetContext';
+import i18n from '../../i18n';
 
 export interface Vaccine {
   id: string;
@@ -76,7 +77,7 @@ export function VaccinesProvider({ children }: { children: ReactNode }) {
     // Programar notificación si hay próxima dosis
     if (vaccine.nextDose) {
       const pet = pets.find(p => p.id === vaccine.petId);
-      const petName = pet?.name || 'Tu mascota';
+      const petName = pet?.name || i18n.t('common.yourPet');
       const notificationId = await scheduleVaccineReminder(
         petName,
         vaccine.name,
@@ -107,7 +108,7 @@ export function VaccinesProvider({ children }: { children: ReactNode }) {
       // Programar nueva si hay próxima dosis
       if (updates.nextDose) {
         const pet = pets.find(p => p.id === (updates.petId || existing.petId));
-        const petName = pet?.name || 'Tu mascota';
+        const petName = pet?.name || i18n.t('common.yourPet');
         const vaccineName = updates.name || existing.name;
         const notifId = await scheduleVaccineReminder(
           petName,
