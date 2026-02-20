@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — CatacApp</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.7;
+      color: #1a1a1a;
+      background: #f8f9fa;
+      padding: 20px;
+    }
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      padding: 40px 36px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    h1 {
+      font-size: 1.8em;
+      margin-bottom: 4px;
+      color: #111;
+    }
+    h2 {
+      font-size: 1.2em;
+      margin-top: 28px;
+      margin-bottom: 8px;
+      color: #222;
+    }
+    p, li {
+      font-size: 0.97em;
+      color: #333;
+      margin-bottom: 10px;
+    }
+    ul {
+      padding-left: 24px;
+      margin-bottom: 12px;
+    }
+    li { margin-bottom: 6px; }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    strong { color: #111; }
+    hr {
+      border: none;
+      border-top: 1px solid #e5e7eb;
+      margin: 36px 0;
+    }
+    .updated {
+      color: #666;
+      font-size: 0.92em;
+      margin-bottom: 20px;
+    }
+    .lang-switch {
+      text-align: center;
+      margin-bottom: 24px;
+      font-size: 0.95em;
+    }
+    .lang-switch a {
+      display: inline-block;
+      padding: 6px 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      margin: 0 4px;
+      color: #374151;
+      transition: background 0.15s;
+    }
+    .lang-switch a:hover, .lang-switch a.active {
+      background: #2563eb;
+      color: #fff;
+      border-color: #2563eb;
+      text-decoration: none;
+    }
+    .section { display: none; }
+    .section.active { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="lang-switch">
+      <a href="#en" id="btn-en" class="active" onclick="showLang('en')">English</a>
+      <a href="#es" id="btn-es" onclick="showLang('es')">Español</a>
+    </div>
+
+    <!-- ENGLISH -->
+    <div id="lang-en" class="section active">
+      <h1>Privacy Policy — CatacApp</h1>
+      <p class="updated">Last updated: February 20, 2026</p>
+      <p>CatacApp is a pet health tracking application developed by Kay-Nicte. This privacy policy explains how we collect, use, and protect your information.</p>
+
+      <h2>1. Data We Collect</h2>
+      <p>CatacApp collects only the information you voluntarily provide:</p>
+      <ul>
+        <li><strong>Account data:</strong> Email address and display name (via Firebase Authentication or Google Sign-In).</li>
+        <li><strong>Pet data:</strong> Name, type, date of birth, avatar selection, and status.</li>
+        <li><strong>Health records:</strong> Food, sleep, weight, bowel movements, and notes.</li>
+        <li><strong>Vaccines:</strong> Name, date, next dose, and notes.</li>
+        <li><strong>Veterinary visits:</strong> Date, veterinarian, reason, and notes.</li>
+        <li><strong>Routines:</strong> Scheduled daily care routines for your pets.</li>
+      </ul>
+
+      <h2>2. Data Storage and Synchronization</h2>
+      <p>Your data is stored in <strong>Google Cloud Firestore</strong>, a cloud database service provided by Google, in order to enable real-time synchronization between devices and household members. Data is transmitted securely using encryption in transit (TLS) and at rest.</p>
+      <p>If you use the <strong>Shared Household</strong> feature, your pet data, health records, vaccines, veterinary visits, and routines are shared with the other household member.</p>
+      <p><strong>Local data:</strong> Notification preferences, theme settings, and device-specific notification schedules are stored locally on your device.</p>
+
+      <h2>3. Third-Party Services</h2>
+      <p>We use the following third-party services:</p>
+      <ul>
+        <li><strong>Firebase Authentication</strong> (Google): For user account management. Subject to <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a>.</li>
+        <li><strong>Cloud Firestore</strong> (Google): For cloud data storage and synchronization. Subject to <a href="https://cloud.google.com/terms" target="_blank" rel="noopener">Google Cloud's Terms</a>.</li>
+        <li><strong>Google AdMob</strong>: To display advertisements to free-tier users. AdMob may collect anonymous advertising identifiers. Subject to <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener">Google's Advertising Policy</a>.</li>
+      </ul>
+      <p>We do <strong>not</strong> sell, share, or transfer your personal information to any other third parties.</p>
+
+      <h2>4. Shared Household</h2>
+      <p>CatacApp offers a <strong>Shared Household</strong> feature (Premium) that allows two users to share pet data:</p>
+      <ul>
+        <li>A Premium user can generate a 6-character invite code (valid for 24 hours, single use).</li>
+        <li>The invited user can join the household and choose to merge their existing pets or start fresh.</li>
+        <li>Both members can view and edit all shared data in real time.</li>
+        <li>Either member can leave the household at any time, which creates a new personal household for them.</li>
+        <li>The household owner can remove the other member at any time.</li>
+      </ul>
+      <p>When you leave or are removed from a household, you lose access to the shared data.</p>
+
+      <h2>5. Notifications</h2>
+      <p>If you grant permission, CatacApp schedules <strong>local notifications</strong> on your device for vaccine reminders, veterinary appointment reminders, and daily routines. These notifications are processed entirely on your device and do not require an internet connection.</p>
+      <p>Notification identifiers are stored locally and are specific to each device.</p>
+
+      <h2>6. Premium Subscriptions</h2>
+      <p>CatacApp offers optional Premium subscriptions (monthly, yearly, or lifetime). Premium status is stored in the cloud and shared with all members of your household. Payment processing is handled by the platform's app store (Google Play).</p>
+
+      <h2>7. Your Rights</h2>
+      <p>You have full control over your data:</p>
+      <ul>
+        <li><strong>Delete individual pets:</strong> Deleting a pet removes all associated records, vaccines, routines, and veterinary visits.</li>
+        <li><strong>Clear all data:</strong> Go to Settings &gt; Danger Zone &gt; Clear all data to delete all your pet data.</li>
+        <li><strong>Leave a household:</strong> You can leave a shared household at any time.</li>
+        <li><strong>Delete your account:</strong> Contact us at soporte@catacapp.com to request complete account deletion.</li>
+        <li><strong>Export your data:</strong> Premium users can export their data in CSV format or create a JSON backup.</li>
+      </ul>
+
+      <h2>8. Children's Privacy</h2>
+      <p>CatacApp does not knowingly collect personal information from children under 13. If you believe a child has provided us with personal data, please contact us so we can delete it.</p>
+
+      <h2>9. Changes to This Policy</h2>
+      <p>We may update this privacy policy from time to time. Any changes will be reflected in the "Last updated" date above. Continued use of the app after changes constitutes acceptance of the updated policy.</p>
+
+      <h2>10. Contact</h2>
+      <p>If you have questions about this privacy policy, please contact us at:</p>
+      <p><strong>Email:</strong> <a href="mailto:soporte@catacapp.com">soporte@catacapp.com</a></p>
+    </div>
+
+    <!-- ESPAÑOL -->
+    <div id="lang-es" class="section">
+      <h1>Política de Privacidad — CatacApp</h1>
+      <p class="updated">Última actualización: 20 de febrero de 2026</p>
+      <p>CatacApp es una aplicación de seguimiento de salud de mascotas desarrollada por Kay-Nicte. Esta política de privacidad explica cómo recopilamos, usamos y protegemos tu información.</p>
+
+      <h2>1. Datos que recopilamos</h2>
+      <p>CatacApp recopila únicamente la información que proporcionas voluntariamente:</p>
+      <ul>
+        <li><strong>Datos de cuenta:</strong> Dirección de correo electrónico y nombre (a través de Firebase Authentication o Google Sign-In).</li>
+        <li><strong>Datos de mascotas:</strong> Nombre, tipo, fecha de nacimiento, avatar y estado.</li>
+        <li><strong>Registros de salud:</strong> Comidas, sueño, peso, deposiciones y notas.</li>
+        <li><strong>Vacunas:</strong> Nombre, fecha, próxima dosis y notas.</li>
+        <li><strong>Citas veterinarias:</strong> Fecha, veterinario, motivo y notas.</li>
+        <li><strong>Rutinas:</strong> Rutinas de cuidado diario programadas para tus mascotas.</li>
+      </ul>
+
+      <h2>2. Almacenamiento y sincronización</h2>
+      <p>Tus datos se almacenan en <strong>Google Cloud Firestore</strong>, un servicio de base de datos en la nube proporcionado por Google, para permitir la sincronización en tiempo real entre dispositivos y miembros del hogar. Los datos se transmiten de forma segura mediante cifrado en tránsito (TLS) y en reposo.</p>
+      <p>Si utilizas la función de <strong>Unidad Doméstica Compartida</strong>, los datos de tus mascotas, registros de salud, vacunas, citas veterinarias y rutinas se comparten con el otro miembro del hogar.</p>
+      <p><strong>Datos locales:</strong> Las preferencias de notificaciones, el tema visual y las programaciones de notificaciones específicas del dispositivo se almacenan localmente en tu dispositivo.</p>
+
+      <h2>3. Servicios de terceros</h2>
+      <p>Utilizamos los siguientes servicios de terceros:</p>
+      <ul>
+        <li><strong>Firebase Authentication</strong> (Google): Para la gestión de cuentas de usuario. Sujeto a la <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Política de Privacidad de Google</a>.</li>
+        <li><strong>Cloud Firestore</strong> (Google): Para el almacenamiento y sincronización de datos en la nube. Sujeto a los <a href="https://cloud.google.com/terms" target="_blank" rel="noopener">Términos de Google Cloud</a>.</li>
+        <li><strong>Google AdMob</strong>: Para mostrar anuncios a usuarios del plan gratuito. AdMob puede recopilar identificadores publicitarios anónimos. Sujeto a la <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener">Política de Publicidad de Google</a>.</li>
+      </ul>
+      <p><strong>No</strong> vendemos, compartimos ni transferimos tu información personal a ningún otro tercero.</p>
+
+      <h2>4. Unidad Doméstica Compartida</h2>
+      <p>CatacApp ofrece una función de <strong>Unidad Doméstica Compartida</strong> (Premium) que permite a dos usuarios compartir datos de mascotas:</p>
+      <ul>
+        <li>Un usuario Premium puede generar un código de invitación de 6 caracteres (válido 24 horas, un solo uso).</li>
+        <li>El usuario invitado puede unirse al hogar y elegir si fusionar sus mascotas existentes o empezar de cero.</li>
+        <li>Ambos miembros pueden ver y editar todos los datos compartidos en tiempo real.</li>
+        <li>Cualquier miembro puede salir del hogar en cualquier momento, lo que crea un nuevo hogar personal.</li>
+        <li>El propietario del hogar puede expulsar al otro miembro en cualquier momento.</li>
+      </ul>
+      <p>Al salir o ser expulsado de un hogar, pierdes el acceso a los datos compartidos.</p>
+
+      <h2>5. Notificaciones</h2>
+      <p>Si otorgas permiso, CatacApp programa <strong>notificaciones locales</strong> en tu dispositivo para recordatorios de vacunas, citas veterinarias y rutinas diarias. Estas notificaciones se procesan íntegramente en tu dispositivo y no requieren conexión a internet.</p>
+      <p>Los identificadores de notificaciones se almacenan localmente y son específicos de cada dispositivo.</p>
+
+      <h2>6. Suscripciones Premium</h2>
+      <p>CatacApp ofrece suscripciones Premium opcionales (mensual, anual o de por vida). El estado Premium se almacena en la nube y se comparte con todos los miembros de tu hogar. El procesamiento de pagos lo gestiona la tienda de aplicaciones de la plataforma (Google Play).</p>
+
+      <h2>7. Tus derechos</h2>
+      <p>Tienes control total sobre tus datos:</p>
+      <ul>
+        <li><strong>Eliminar mascotas individuales:</strong> Al eliminar una mascota se eliminan todos sus registros, vacunas, rutinas y citas veterinarias asociados.</li>
+        <li><strong>Borrar todos los datos:</strong> Ve a Ajustes &gt; Zona de Peligro &gt; Borrar todos los datos para eliminar todos tus datos.</li>
+        <li><strong>Salir de un hogar:</strong> Puedes salir de un hogar compartido en cualquier momento.</li>
+        <li><strong>Eliminar tu cuenta:</strong> Contáctanos en soporte@catacapp.com para solicitar la eliminación completa de tu cuenta.</li>
+        <li><strong>Exportar tus datos:</strong> Los usuarios Premium pueden exportar sus datos en formato CSV o crear una copia de seguridad JSON.</li>
+      </ul>
+
+      <h2>8. Privacidad de menores</h2>
+      <p>CatacApp no recopila deliberadamente información personal de menores de 13 años. Si crees que un menor nos ha proporcionado datos personales, contáctanos para que podamos eliminarlos.</p>
+
+      <h2>9. Cambios en esta política</h2>
+      <p>Podemos actualizar esta política de privacidad periódicamente. Cualquier cambio se reflejará en la fecha de "Última actualización" anterior. El uso continuado de la app tras los cambios constituye la aceptación de la política actualizada.</p>
+
+      <h2>10. Contacto</h2>
+      <p>Si tienes preguntas sobre esta política de privacidad, contáctanos en:</p>
+      <p><strong>Email:</strong> <a href="mailto:soporte@catacapp.com">soporte@catacapp.com</a></p>
+    </div>
+  </div>
+
+  <script>
+    function showLang(lang) {
+      document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('active'); });
+      document.querySelectorAll('.lang-switch a').forEach(function(a) { a.classList.remove('active'); });
+      document.getElementById('lang-' + lang).classList.add('active');
+      document.getElementById('btn-' + lang).classList.add('active');
+    }
+    if (window.location.hash === '#es') showLang('es');
+  </script>
+</body>
+</html>
