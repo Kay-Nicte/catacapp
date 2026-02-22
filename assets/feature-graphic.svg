@@ -1,0 +1,11 @@
+<svg width="1024" height="500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#E8874A"/>
+      <stop offset="100%" stop-color="#C45A2D"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="500" fill="url(#bg)"/>
+  <text x="512" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="800" fill="#FFFFFF" letter-spacing="2">CatacApp</text>
+  <text x="512" y="300" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="500" fill="#FFE0CC">La salud de tu mascota en tu bolsillo</text>
+</svg>

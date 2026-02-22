@@ -11,7 +11,7 @@ import {
 import type { FirestorePet } from "../../types/firestore";
 
 export type PetType = "cat" | "dog" | "rabbit" | "hamster" | "bird" | "iguana" | "snake";
-export type PetStatus = "active" | "memorial";
+export type PetStatus = "active" | "memorial" | "archived";
 
 export type Pet = {
   id: string;
@@ -43,6 +43,12 @@ type PetContextValue = {
 
   markPetDeceased: (id: string, deceasedAtISO: string) => void;
   reactivatePet: (id: string) => void;
+  archivePet: (id: string) => void;
+  unarchivePet: (id: string) => void;
+
+  defaultPetId: string;
+  setDefaultPetId: (id: string) => void;
+  clearDefaultPetId: () => void;
 
   deletePet: (id: string) => void;
 };
@@ -50,6 +56,7 @@ type PetContextValue = {
 const PetContext = createContext<PetContextValue | null>(null);
 
 const SELECTED_PET_KEY = "@catacapp_selected_pet";
+const DEFAULT_PET_KEY = "@catacapp_default_pet";
 
 function uid() {
   return Math.random().toString(16).slice(2) + Date.now().toString(16);
@@ -60,9 +67,11 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
   const { householdId, loading: householdLoading } = useHousehold();
   const [pets, setPets] = useState<Pet[]>([]);
   const [selectedPetId, setSelectedPetId] = useState("");
+  const [defaultPetId, setDefaultPetIdState] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   const selectedKey = `${SELECTED_PET_KEY}_${user?.id}`;
+  const defaultKey = `${DEFAULT_PET_KEY}_${user?.id}`;
 
   // Subscribe to Firestore pets collection
   useEffect(() => {
@@ -70,14 +79,19 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
       if (!user) {
         setPets([]);
         setSelectedPetId("");
+        setDefaultPetIdState("");
       }
       setIsLoading(!user ? true : householdLoading);
       return;
     }
 
-    // Load saved selected pet
-    AsyncStorage.getItem(selectedKey).then((stored) => {
-      if (stored) setSelectedPetId(stored);
+    // Load saved selected pet and default pet
+    Promise.all([
+      AsyncStorage.getItem(selectedKey),
+      AsyncStorage.getItem(defaultKey),
+    ]).then(([storedSelected, storedDefault]) => {
+      if (storedSelected) setSelectedPetId(storedSelected);
+      if (storedDefault) setDefaultPetIdState(storedDefault);
     });
 
     const unsub = onCollectionSnapshot<FirestorePet>(
@@ -96,13 +110,20 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
         setPets(mapped);
         setIsLoading(false);
 
-        // Auto-select first pet if none selected
+        // Auto-select: defaultPetId > last selected > first non-archived pet
         if (mapped.length > 0) {
           setSelectedPetId((prev) => {
-            if (!prev || !mapped.some((p) => p.id === prev)) {
-              return mapped[0].id;
+            if (prev && mapped.some((p) => p.id === prev && p.status !== "archived")) {
+              return prev;
             }
-            return prev;
+            // Try default pet
+            AsyncStorage.getItem(`${DEFAULT_PET_KEY}_${user?.id}`).then((defId) => {
+              if (defId && mapped.some((p) => p.id === defId && p.status !== "archived")) {
+                setSelectedPetId(defId);
+              }
+            });
+            const firstNonArchived = mapped.find((p) => p.status !== "archived");
+            return firstNonArchived ? firstNonArchived.id : mapped[0].id;
           });
         } else {
           setSelectedPetId("");
@@ -183,6 +204,27 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
     });
   }, [householdId]);
 
+  const archivePet = useCallback((id: string) => {
+    if (!householdId) return;
+    updateDocument(householdId, 'pets', id, { status: "archived" });
+  }, [householdId]);
+
+  const unarchivePet = useCallback((id: string) => {
+    if (!householdId) return;
+    // Unarchive back to memorial (archived pets come from memorial)
+    updateDocument(householdId, 'pets', id, { status: "memorial" });
+  }, [householdId]);
+
+  const setDefaultPetId = useCallback((id: string) => {
+    setDefaultPetIdState(id);
+    if (user) AsyncStorage.setItem(defaultKey, id);
+  }, [user, defaultKey]);
+
+  const clearDefaultPetId = useCallback(() => {
+    setDefaultPetIdState("");
+    if (user) AsyncStorage.removeItem(defaultKey);
+  }, [user, defaultKey]);
+
   const deletePet = useCallback((id: string) => {
     if (!householdId) return;
     deleteDocument(householdId, 'pets', id);
@@ -199,9 +241,14 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
       updatePet,
       markPetDeceased,
       reactivatePet,
+      archivePet,
+      unarchivePet,
+      defaultPetId,
+      setDefaultPetId,
+      clearDefaultPetId,
       deletePet,
     }),
-    [pets, selectedPetId, selectedPet, isLoading, addPet, updatePet, markPetDeceased, reactivatePet, deletePet]
+    [pets, selectedPetId, selectedPet, isLoading, addPet, updatePet, markPetDeceased, reactivatePet, archivePet, unarchivePet, defaultPetId, setDefaultPetId, clearDefaultPetId, deletePet]
   );
 
   return <PetContext.Provider value={value}>{children}</PetContext.Provider>;

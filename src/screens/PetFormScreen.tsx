@@ -35,8 +35,10 @@ export default function PetFormScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "PetForm">>();
 
-  const { pets, addPet, updatePet, markPetDeceased, reactivatePet, deletePet } =
-    usePet();
+  const {
+    pets, addPet, updatePet, markPetDeceased, reactivatePet, deletePet,
+    archivePet, unarchivePet, defaultPetId, setDefaultPetId, clearDefaultPetId,
+  } = usePet();
   const { isPremium } = usePremium();
   const { deleteByPet: deleteRecordsByPet } = useRecords();
   const { deleteByPet: deleteVetByPet } = useVet();
@@ -47,7 +49,9 @@ export default function PetFormScreen() {
   const pet = pets.find((p) => p.id === petId);
 
   const isMemorial = pet?.status === "memorial";
-  const readOnly = isMemorial; // en recuerdo: solo lectura
+  const isArchived = pet?.status === "archived";
+  const readOnly = isMemorial || isArchived;
+  const isDefault = petId ? defaultPetId === petId : false;
 
   const avatarOptionsCat = useMemo(
     () => ["cat_gray_01", "cat_black_01", "cat_orange_01", "cat_white_01", "cat_bengala", "cat_mainecoon", "cat_siames"],
@@ -185,6 +189,25 @@ export default function PetFormScreen() {
     );
   }
 
+  function confirmArchive() {
+    if (!editing || !petId) return;
+
+    Alert.alert(
+      tr('pets.confirmArchive'),
+      tr('pets.confirmArchiveMsg'),
+      [
+        { text: tr('common.cancel'), style: "cancel" },
+        {
+          text: tr('pets.confirmArchiveBtn'),
+          onPress: () => {
+            archivePet(petId);
+            nav.goBack();
+          },
+        },
+      ]
+    );
+  }
+
   function confirmDelete() {
     if (!editing || !petId) return;
 
@@ -227,9 +250,9 @@ export default function PetFormScreen() {
             { backgroundColor: t.card, borderColor: t.border },
           ]}
         >
-          <PetAvatar avatarKey={avatarKey} memorial={isMemorial} size={110} />
+          <PetAvatar avatarKey={avatarKey} memorial={isMemorial || isArchived} size={110} />
           <Text style={[styles.previewText, { color: t.textMuted }]}>
-            {isMemorial ? tr('pets.memorialMode') : tr('pets.preview')}
+            {isArchived ? tr('pets.archivedMode') : isMemorial ? tr('pets.memorialMode') : tr('pets.preview')}
           </Text>
         </View>
 
@@ -384,21 +407,60 @@ export default function PetFormScreen() {
           <View style={[styles.stateBox, { borderColor: t.border, backgroundColor: t.card }]}>
             <Text style={[styles.stateTitle, { color: t.text }]}>{tr('pets.stateLabel')}</Text>
             <Text style={[styles.stateDesc, { color: t.textMuted }]}>
-              {pet.status === "active"
-                ? tr('pets.active')
-                : tr('pets.memorialMode')}
+              {pet.status === "archived"
+                ? tr('pets.archivedMode')
+                : pet.status === "memorial"
+                  ? tr('pets.memorialMode')
+                  : tr('pets.active')}
             </Text>
 
-            {pet.status === "active" ? (
+            {/* Default pet toggle (active only) */}
+            {pet.status === "active" && (
+              <Pressable
+                onPress={() => {
+                  if (isDefault) {
+                    clearDefaultPetId();
+                  } else {
+                    setDefaultPetId(petId!);
+                  }
+                }}
+                style={styles.stateAction}
+              >
+                <Text style={[styles.stateActionText, { color: t.accent }]}>
+                  {isDefault ? tr('pets.removeDefault') : tr('pets.setDefault')}
+                </Text>
+              </Pressable>
+            )}
+
+            {/* Status transitions */}
+            {pet.status === "active" && (
               <Pressable onPress={confirmMarkDeceased} style={styles.stateAction}>
                 <Text style={[styles.stateActionText, { color: t.textMuted }]}>
                   {tr('pets.markDeceased')}
                 </Text>
               </Pressable>
-            ) : (
-              <Pressable onPress={confirmReactivate} style={styles.stateAction}>
+            )}
+            {pet.status === "memorial" && (
+              <>
+                <Pressable onPress={confirmReactivate} style={styles.stateAction}>
+                  <Text style={[styles.stateActionText, { color: t.textMuted }]}>
+                    {tr('pets.reactivate')}
+                  </Text>
+                </Pressable>
+                <Pressable onPress={confirmArchive} style={styles.stateAction}>
+                  <Text style={[styles.stateActionText, { color: t.textMuted }]}>
+                    {tr('pets.archivePet')}
+                  </Text>
+                </Pressable>
+              </>
+            )}
+            {pet.status === "archived" && (
+              <Pressable
+                onPress={() => { unarchivePet(petId!); nav.goBack(); }}
+                style={styles.stateAction}
+              >
                 <Text style={[styles.stateActionText, { color: t.textMuted }]}>
-                  {tr('pets.reactivate')}
+                  {tr('pets.unarchive')}
                 </Text>
               </Pressable>
             )}

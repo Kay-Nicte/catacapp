@@ -1,9 +1,22 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
+import { Linking, Platform } from 'react-native';
+import Purchases, {
+  LOG_LEVEL,
+  PurchasesPackage,
+  CustomerInfo,
+  PurchasesEntitlementInfo,
+  PACKAGE_TYPE,
+} from 'react-native-purchases';
 import { useAuth } from './AuthContext';
 import { useHousehold } from './HouseholdContext';
 import { updateHouseholdPremium } from '../../services/firestore';
 import type { FirestorePremiumStatus } from '../../types/firestore';
 import i18n from '../../i18n';
+
+// ── RevenueCat config ─────────────────────────────────────
+// Replace with your public Google Play API key from RevenueCat dashboard
+const REVENUECAT_API_KEY = 'goog_MlSpViRBMSgJSpshiwBPZiWKwvc';
+const ENTITLEMENT_ID = 'catacapp_pro';
 
 export type PremiumPlan = 'free' | 'monthly' | 'yearly' | 'lifetime';
 
@@ -26,7 +39,9 @@ interface PremiumContextType {
   isLoading: boolean;
   isPremium: boolean;
   features: PremiumFeature[];
-  subscribe: (plan: PremiumPlan) => Promise<{ success: boolean; error?: string }>;
+  packages: PurchasesPackage[];
+  packagesLoading: boolean;
+  subscribe: (pkg: PurchasesPackage) => Promise<{ success: boolean; error?: string }>;
   redeemCode: (code: string) => Promise<{ success: boolean; error?: string }>;
   restore: () => Promise<{ success: boolean; error?: string }>;
   cancelSubscription: () => Promise<{ success: boolean; error?: string }>;
@@ -80,12 +95,40 @@ export const FREE_LIMITS = {
   maxPets: 2,
 };
 
-// Precios (para mostrar en UI)
+// Fallback prices (shown when RevenueCat offerings unavailable)
 export const PREMIUM_PRICES = {
-  monthly: { price: 2.99, period: 'mes' },
-  yearly: { price: 19.99, period: 'año', savings: '44%' },
-  lifetime: { price: 49.99, period: 'para siempre' },
+  monthly: { price: 3.99, period: 'mes' },
+  yearly: { price: 29.99, period: 'año', savings: '37%' },
+  lifetime: { price: 69.99, period: 'para siempre' },
 };
+
+// ── Helpers ───────────────────────────────────────────────
+
+function mapPackageToPlan(pkg: PurchasesPackage): PremiumPlan {
+  switch (pkg.packageType) {
+    case PACKAGE_TYPE.MONTHLY:
+      return 'monthly';
+    case PACKAGE_TYPE.ANNUAL:
+      return 'yearly';
+    case PACKAGE_TYPE.LIFETIME:
+      return 'lifetime';
+    default:
+      // Fallback: try to infer from identifier
+      if (pkg.identifier.includes('monthly')) return 'monthly';
+      if (pkg.identifier.includes('yearly') || pkg.identifier.includes('annual')) return 'yearly';
+      if (pkg.identifier.includes('lifetime')) return 'lifetime';
+      return 'monthly';
+  }
+}
+
+function mapEntitlementToPlan(entitlement: PurchasesEntitlementInfo): PremiumPlan {
+  const productId = entitlement.productIdentifier;
+  if (productId.includes('lifetime')) return 'lifetime';
+  if (productId.includes('yearly') || productId.includes('annual')) return 'yearly';
+  return 'monthly';
+}
+
+// ── Provider ──────────────────────────────────────────────
 
 export function PremiumProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -95,8 +138,64 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     plan: 'free',
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [packages, setPackages] = useState<PurchasesPackage[]>([]);
+  const [packagesLoading, setPackagesLoading] = useState(false);
 
-  // Derive premium status from household doc
+  const configuredRef = useRef(false);
+  const householdIdRef = useRef(householdId);
+
+  // Keep ref in sync
+  useEffect(() => {
+    householdIdRef.current = householdId;
+  }, [householdId]);
+
+  // ── Initialize RevenueCat (once) ──────────────────────
+  useEffect(() => {
+    if (configuredRef.current) return;
+    configuredRef.current = true;
+
+    if (__DEV__) {
+      Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+    }
+    Purchases.configure({ apiKey: REVENUECAT_API_KEY });
+  }, []);
+
+  // ── Login / Logout with RevenueCat ────────────────────
+  useEffect(() => {
+    if (user) {
+      Purchases.logIn(user.id).catch(() => {
+        // Silent fail — entitlement check still works with anonymous user
+      });
+    } else {
+      Purchases.logOut().catch(() => {});
+    }
+  }, [user?.id]);
+
+  // ── Load offerings ────────────────────────────────────
+  useEffect(() => {
+    if (!user) {
+      setPackages([]);
+      return;
+    }
+
+    const loadOfferings = async () => {
+      setPackagesLoading(true);
+      try {
+        const offerings = await Purchases.getOfferings();
+        if (offerings.current?.availablePackages) {
+          setPackages(offerings.current.availablePackages);
+        }
+      } catch {
+        // Offerings unavailable — UI will use fallback static prices
+      } finally {
+        setPackagesLoading(false);
+      }
+    };
+
+    loadOfferings();
+  }, [user?.id]);
+
+  // ── Sync premium from Firestore household (for all members) ──
   useEffect(() => {
     if (!user) {
       setStatus({ isPremium: false, plan: 'free' });
@@ -130,6 +229,78 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, [user, household, householdLoading]);
 
+  // ── RevenueCat customer info listener ─────────────────
+  const syncEntitlementToFirestore = useCallback(async (info: CustomerInfo) => {
+    const hId = householdIdRef.current;
+    if (!hId) return;
+
+    const entitlement = info.entitlements.active[ENTITLEMENT_ID];
+
+    if (entitlement) {
+      const premiumData: FirestorePremiumStatus = {
+        isPremium: true,
+        plan: mapEntitlementToPlan(entitlement),
+        expiresAt: entitlement.expirationDate || undefined,
+        purchasedAt: entitlement.originalPurchaseDate,
+      };
+      try {
+        await updateHouseholdPremium(hId, premiumData);
+      } catch {
+        // Firestore unavailable — local state updated via household snapshot
+      }
+    } else {
+      // Premium expired or cancelled
+      try {
+        await updateHouseholdPremium(hId, null);
+      } catch {
+        // Firestore unavailable
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    Purchases.addCustomerInfoUpdateListener(syncEntitlementToFirestore);
+    return () => {
+      Purchases.removeCustomerInfoUpdateListener(syncEntitlementToFirestore);
+    };
+  }, [syncEntitlementToFirestore]);
+
+  // ── Subscribe via RevenueCat ──────────────────────────
+  const subscribe = async (pkg: PurchasesPackage): Promise<{ success: boolean; error?: string }> => {
+    if (!user) {
+      return { success: false, error: i18n.t('auth.errors.loginRequired') };
+    }
+    if (!householdId) {
+      return { success: false, error: i18n.t('premium.setupError') };
+    }
+
+    try {
+      const { customerInfo } = await Purchases.purchasePackage(pkg);
+      const entitlement = customerInfo.entitlements.active[ENTITLEMENT_ID];
+
+      if (entitlement) {
+        const premiumData: FirestorePremiumStatus = {
+          isPremium: true,
+          plan: mapPackageToPlan(pkg),
+          expiresAt: entitlement.expirationDate || undefined,
+          purchasedAt: entitlement.originalPurchaseDate,
+        };
+
+        await updateHouseholdPremium(householdId, premiumData);
+        return { success: true };
+      }
+
+      return { success: false, error: i18n.t('premium.purchaseError') };
+    } catch (error: any) {
+      // User cancelled the purchase flow
+      if (error.userCancelled) {
+        return { success: false, error: 'cancelled' };
+      }
+      return { success: false, error: i18n.t('premium.purchaseError') };
+    }
+  };
+
+  // ── Redeem code (CATACAPPVIP bypass) ──────────────────
   const redeemCode = async (code: string): Promise<{ success: boolean; error?: string }> => {
     if (!user) {
       return { success: false, error: i18n.t('auth.errors.loginRequired') };
@@ -169,62 +340,36 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     return { success: true };
   };
 
-  const subscribe = async (plan: PremiumPlan): Promise<{ success: boolean; error?: string }> => {
-    if (!user) {
-      return { success: false, error: i18n.t('auth.errors.loginRequired') };
-    }
-    if (!householdId) {
-      return { success: false, error: i18n.t('premium.setupError') };
-    }
-
-    try {
-      // TODO: Integrate real payment system (Google Play Billing, RevenueCat)
-      // Simulated purchase for now
-
-      const now = new Date();
-      let expiresAt: string | undefined;
-
-      switch (plan) {
-        case 'monthly':
-          expiresAt = new Date(now.setMonth(now.getMonth() + 1)).toISOString();
-          break;
-        case 'yearly':
-          expiresAt = new Date(now.setFullYear(now.getFullYear() + 1)).toISOString();
-          break;
-        case 'lifetime':
-          expiresAt = undefined;
-          break;
-      }
-
-      const premiumStatus: FirestorePremiumStatus = {
-        isPremium: true,
-        plan,
-        expiresAt,
-        purchasedAt: new Date().toISOString(),
-      };
-
-      // Write to household doc (propagates to all members via onSnapshot)
-      await updateHouseholdPremium(householdId, premiumStatus);
-
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: i18n.t('auth.errors.purchaseError') };
-    }
-  };
-
+  // ── Restore purchases via RevenueCat ──────────────────
   const restore = async (): Promise<{ success: boolean; error?: string }> => {
     if (!user) {
       return { success: false, error: i18n.t('auth.errors.loginRequired') };
     }
 
-    // TODO: Verify with real payment system
-    if (status.isPremium) {
-      return { success: true };
-    } else {
+    try {
+      const customerInfo = await Purchases.restorePurchases();
+      const entitlement = customerInfo.entitlements.active[ENTITLEMENT_ID];
+
+      if (entitlement) {
+        if (householdId) {
+          const premiumData: FirestorePremiumStatus = {
+            isPremium: true,
+            plan: mapEntitlementToPlan(entitlement),
+            expiresAt: entitlement.expirationDate || undefined,
+            purchasedAt: entitlement.originalPurchaseDate,
+          };
+          await updateHouseholdPremium(householdId, premiumData);
+        }
+        return { success: true };
+      }
+
       return { success: false, error: i18n.t('auth.errors.noPurchasesFound') };
+    } catch {
+      return { success: false, error: i18n.t('auth.errors.restoreError') };
     }
   };
 
+  // ── Cancel subscription — redirect to Google Play ─────
   const cancelSubscription = async (): Promise<{ success: boolean; error?: string }> => {
     if (!user || !householdId) {
       return { success: false, error: i18n.t('auth.errors.loginRequired') };
@@ -235,11 +380,9 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // TODO: Cancel with real payment system
-      await updateHouseholdPremium(householdId, null);
-
+      await Linking.openURL('https://play.google.com/store/account/subscriptions');
       return { success: true };
-    } catch (error) {
+    } catch {
       return { success: false, error: i18n.t('auth.errors.cancelError') };
     }
   };
@@ -258,6 +401,8 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
         isLoading,
         isPremium: status.isPremium,
         features: PREMIUM_FEATURES,
+        packages,
+        packagesLoading,
         subscribe,
         redeemCode,
         restore,

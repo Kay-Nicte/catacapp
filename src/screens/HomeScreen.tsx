@@ -6,6 +6,7 @@ import { useTheme } from "../theme/useTheme";
 import { shadows } from "../theme/tokens";
 import { useAuth } from "../app/state/AuthContext";
 import { usePet } from "../app/state/PetContext";
+import type { Pet } from "../app/state/PetContext";
 import { useRecords, RecordType } from "../app/state/RecordsContext";
 import PetAvatar from "../components/PetAvatar";
 import RoutinesModal from "../components/RoutinesModal";
@@ -25,6 +26,10 @@ type SummaryPrefs = Record<string, boolean>; // keyed by RecordType
 const DEFAULT_PREFS: SummaryPrefs = { FOOD: true, POOP: true, SLEEP: true, WEIGHT: true };
 
 type Summary = { id: string; icon: string; name: string; value: string; type: RecordType };
+
+type PetFilter = "all" | "active" | "memorial" | "archived";
+
+type PetGridItem = Pet | { id: "__spacer__" };
 
 type NavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<TabsParamList>,
@@ -66,13 +71,14 @@ export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
 
   const { user } = useAuth();
-  const { pets, selectedPetId, setSelectedPetId, selectedPet, isLoading: isPetsLoading } = usePet();
+  const { pets, selectedPetId, setSelectedPetId, selectedPet, defaultPetId, isLoading: isPetsLoading } = usePet();
   const { getRecordsByDate, getRecordsByPet, getTodayRoutines, confirmRoutine, skipRoutine, isLoading: isRecordsLoading } = useRecords();
 
   const [routinesModalVisible, setRoutinesModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [summaryPrefs, setSummaryPrefs] = useState<SummaryPrefs>(DEFAULT_PREFS);
   const [summaryModalVisible, setSummaryModalVisible] = useState(false);
+  const [petFilter, setPetFilter] = useState<PetFilter>("all");
   const [editingRoutine, setEditingRoutine] = useState<{
     id: string;
     type: RecordType;
@@ -80,9 +86,48 @@ export default function HomeScreen() {
     time: string;
     defaultValue?: string;
   } | null>(null);
-  
+
   const isLoading = isPetsLoading || isRecordsLoading;
   const isMemorialSelected = selectedPet?.status === "memorial";
+
+  // Check if there are memorial or archived pets (for showing filter chips)
+  const hasMemorial = pets.some(p => p.status === "memorial");
+  const hasArchived = pets.some(p => p.status === "archived");
+  const showFilters = hasMemorial || hasArchived;
+
+  // Filter → Sort → Spacer pipeline
+  const petsGridData: PetGridItem[] = useMemo(() => {
+    let filtered: Pet[];
+    switch (petFilter) {
+      case "active":
+        filtered = pets.filter(p => p.status === "active");
+        break;
+      case "memorial":
+        filtered = pets.filter(p => p.status === "memorial");
+        break;
+      case "archived":
+        filtered = pets.filter(p => p.status === "archived");
+        break;
+      case "all":
+      default:
+        // "All" excludes archived
+        filtered = pets.filter(p => p.status !== "archived");
+        break;
+    }
+
+    // Sort: active first, memorial last
+    const sorted = [...filtered].sort((a, b) => {
+      const order = { active: 0, memorial: 1, archived: 2 };
+      return (order[a.status] ?? 2) - (order[b.status] ?? 2);
+    });
+
+    // Add spacer if odd count for 2-column grid
+    const result: PetGridItem[] = [...sorted];
+    if (result.length % 2 !== 0) {
+      result.push({ id: "__spacer__" });
+    }
+    return result;
+  }, [pets, petFilter]);
 
   // Cargar preferencias de resumen
   const prefsKey = `${SUMMARY_PREFS_KEY}_${user?.id}`;
@@ -133,7 +178,7 @@ export default function HomeScreen() {
         id: "s1",
         icon: getIcon("FOOD"),
         name: tr('common.recordType.FOOD'),
-        value: foodRecords.length > 0 ? tr('home.recorded', { count: foodRecords.length }) : tr('home.noRecords'),
+        value: foodRecords.length > 0 ? tr('home.registered', { count: foodRecords.length }) : tr('home.noRecords'),
         type: "FOOD",
       },
       {
@@ -202,43 +247,97 @@ export default function HomeScreen() {
     }
   };
 
+  // Filter chip component
+  const FilterChip = ({ label, value }: { label: string; value: PetFilter }) => {
+    const active = petFilter === value;
+    return (
+      <Pressable
+        onPress={() => setPetFilter(value)}
+        style={[
+          styles.filterChip,
+          {
+            backgroundColor: active ? t.accentSoft : t.card,
+            borderColor: active ? "transparent" : t.border,
+          },
+        ]}
+      >
+        <Text
+          style={{
+            color: active ? t.accent : t.textMuted,
+            fontWeight: "800",
+            fontSize: 12,
+          }}
+        >
+          {label}
+        </Text>
+      </Pressable>
+    );
+  };
+
   // Header del FlatList
   const ListHeaderComponent = () => (
     <>
+      {/* Filter chips */}
+      {showFilters && (
+        <View style={styles.filterRow}>
+          <FilterChip label={tr('home.filterAll')} value="all" />
+          <FilterChip label={tr('home.filterActive')} value="active" />
+          {hasMemorial && <FilterChip label={tr('home.filterMemorial')} value="memorial" />}
+          {hasArchived && <FilterChip label={tr('home.filterArchived')} value="archived" />}
+        </View>
+      )}
+
       {/* Pets grid */}
       <FlatList
-        data={pets}
+        data={petsGridData}
         keyExtractor={(item) => item.id}
         numColumns={2}
         columnWrapperStyle={{ gap: 12 }}
         contentContainerStyle={{ gap: 12, paddingBottom: 10 }}
         scrollEnabled={false}
         renderItem={({ item }) => {
-          const selected = item.id === selectedPetId;
-          const memorial = item.status === "memorial";
-          const age = memorial ? tr('home.memorial') : calculateAge(item.birthDate, tr);
+          // Spacer item
+          if (item.id === "__spacer__") {
+            return <View style={{ flex: 1 }} />;
+          }
+
+          const pet = item as Pet;
+          const selected = pet.id === selectedPetId;
+          const memorial = pet.status === "memorial";
+          const archived = pet.status === "archived";
+          const isDefault = pet.id === defaultPetId;
+          const age = memorial
+            ? tr('home.remembered')
+            : archived
+              ? tr('pets.archivedMode')
+              : calculateAge(pet.birthDate, tr);
 
           return (
             <AnimatedPressable
-              onPress={() => setSelectedPetId(item.id)}
-              onLongPress={() => navigation.navigate("PetForm", { petId: item.id })}
+              onPress={() => setSelectedPetId(pet.id)}
+              onLongPress={() => navigation.navigate("PetForm", { petId: pet.id })}
               style={[
                 styles.petCard,
                 {
                   backgroundColor: t.card,
                   borderColor: selected ? t.accent : "transparent",
-                  opacity: memorial ? 0.55 : 1,
+                  opacity: memorial || archived ? 0.55 : 1,
                   ...shadows.md,
                 },
               ]}
             >
-              <PetAvatar avatarKey={item.avatarKey} memorial={memorial} size={92} />
-              <Text style={[styles.petName, { color: t.text }]}>{item.name}</Text>
-              {age && (
+              {isDefault && (
+                <View style={styles.defaultStar}>
+                  <Icon name="star" size={14} color={t.accent} />
+                </View>
+              )}
+              <PetAvatar avatarKey={pet.avatarKey} memorial={memorial || archived} size={92} />
+              <Text style={[styles.petName, { color: t.text }]}>{pet.name}</Text>
+              {age ? (
                 <Text style={[styles.petStatus, { color: t.textMuted }]}>
                   {age}
                 </Text>
-              )}
+              ) : null}
             </AnimatedPressable>
           );
         }}
@@ -255,7 +354,7 @@ export default function HomeScreen() {
           <Text style={[styles.summaryTitle, { color: t.text }]}>{tr('home.routines')}</Text>
           <Text style={[styles.summarySub, { color: t.textMuted }]}>
             {pendingRoutines.length > 0
-              ? tr('home.pendingRoutines', { count: pendingRoutines.length })
+              ? tr('home.pending', { count: pendingRoutines.length })
               : tr('home.allDone')}
           </Text>
         </View>
@@ -277,7 +376,7 @@ export default function HomeScreen() {
         <>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: t.textMuted }]}>
-              {tr('home.pendingRoutinesSection')}
+              {tr('home.pendingRoutines')}
             </Text>
             <Text style={[styles.badge, { backgroundColor: t.accent }]}>
               {pendingRoutines.length}
@@ -351,7 +450,7 @@ export default function HomeScreen() {
       {/* Resumen del día */}
       <View style={[styles.sectionHeader, { marginTop: 14 }]}>
         <Text style={[styles.sectionTitle, { color: t.textMuted }]}>
-          {tr('home.summaryTitle')}
+          {tr('home.todaySummary')}
         </Text>
         <AnimatedPressable
           onPress={() => setSummaryModalVisible(true)}
@@ -458,7 +557,7 @@ export default function HomeScreen() {
           )}
           ListEmptyComponent={
             <Text style={[styles.summaryEmpty, { color: t.textMuted }]}>
-              {tr('home.noCardsVisible')}
+              {tr('home.noCards')}
             </Text>
           }
           ListFooterComponent={
@@ -526,7 +625,7 @@ export default function HomeScreen() {
               {tr('home.customizeSummary')}
             </Text>
             <Text style={[styles.modalDesc, { color: t.textMuted }]}>
-              {tr('home.customizeSummaryDesc')}
+              {tr('home.customizeDesc')}
             </Text>
 
             {(["FOOD", "POOP", "SLEEP", "WEIGHT"] as RecordType[]).map((type) => (
@@ -604,15 +703,34 @@ const styles = StyleSheet.create({
   container: { paddingHorizontal: 20 },
   contentContainer: { paddingTop: 10, paddingBottom: 10 },
 
+  filterRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+
   petCard: {
     flex: 1,
     borderRadius: 18,
     padding: 14,
     alignItems: "center",
     borderWidth: 2,
+    position: "relative",
   },
   petName: { fontSize: 18, fontWeight: "700", marginTop: 10 },
   petStatus: { marginTop: 2, fontSize: 13, fontWeight: "500" },
+  defaultStar: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    zIndex: 1,
+  },
 
   summary: {
     borderRadius: 18,
@@ -687,9 +805,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 10,
   },
-  summaryRowLeft: { 
-    flexDirection: "row", 
-    alignItems: "center", 
+  summaryRowLeft: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     flex: 1,
   },
@@ -707,7 +825,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   summaryValue: { fontSize: 14, fontWeight: "500" },
-  
+
   separator: { height: 1, opacity: 0.9, marginBottom: 10 },
   divider: { height: 1, opacity: 0.9, marginTop: 12 },
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { PACKAGE_TYPE, PurchasesPackage } from 'react-native-purchases';
 import { Icon } from '../components/ui/Icon';
 import { AnimatedPressable } from '../components/ui/AnimatedPressable';
 import { useTheme } from '../theme/useTheme';
@@ -18,29 +19,113 @@ import {
   usePremium,
   PREMIUM_FEATURES,
   PREMIUM_PRICES,
-  PremiumPlan,
 } from '../app/state/PremiumContext';
 import { useTranslation } from 'react-i18next';
-import i18n, { getLocale } from '../i18n';
+import { getLocale } from '../i18n';
+
+type PlanKey = 'monthly' | 'yearly' | 'lifetime';
+
+interface DisplayPlan {
+  key: PlanKey;
+  pkg: PurchasesPackage | null;
+  priceString: string;
+  savings?: string;
+}
+
+function getPackagePlanKey(pkg: PurchasesPackage): PlanKey | null {
+  switch (pkg.packageType) {
+    case PACKAGE_TYPE.MONTHLY:
+      return 'monthly';
+    case PACKAGE_TYPE.ANNUAL:
+      return 'yearly';
+    case PACKAGE_TYPE.LIFETIME:
+      return 'lifetime';
+    default:
+      if (pkg.identifier.includes('monthly')) return 'monthly';
+      if (pkg.identifier.includes('yearly') || pkg.identifier.includes('annual')) return 'yearly';
+      if (pkg.identifier.includes('lifetime')) return 'lifetime';
+      return null;
+  }
+}
 
 export default function PremiumScreen() {
   const t = useTheme();
   const { t: tr } = useTranslation();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const { isPremium, status, subscribe, redeemCode, restore } = usePremium();
+  const { isPremium, status, subscribe, redeemCode, restore, packages } = usePremium();
 
-  const [selectedPlan, setSelectedPlan] = useState<PremiumPlan>('yearly');
+  const [selectedPlanKey, setSelectedPlanKey] = useState<PlanKey>('yearly');
   const [isLoading, setIsLoading] = useState(false);
   const [redeemInput, setRedeemInput] = useState('');
   const [isRedeeming, setIsRedeeming] = useState(false);
 
+  // Build display plans from RevenueCat packages or fallback to static prices
+  const displayPlans: DisplayPlan[] = useMemo(() => {
+    const plans: DisplayPlan[] = [];
+    const foundKeys = new Set<PlanKey>();
+
+    // Map RevenueCat packages to display plans
+    for (const pkg of packages) {
+      const key = getPackagePlanKey(pkg);
+      if (key && !foundKeys.has(key)) {
+        foundKeys.add(key);
+        plans.push({
+          key,
+          pkg,
+          priceString: pkg.product.priceString,
+          savings: key === 'yearly' ? PREMIUM_PRICES.yearly.savings : undefined,
+        });
+      }
+    }
+
+    // Fallback: if any plan is missing, use static prices
+    if (!foundKeys.has('yearly')) {
+      plans.push({
+        key: 'yearly',
+        pkg: null,
+        priceString: `${PREMIUM_PRICES.yearly.price}€`,
+        savings: PREMIUM_PRICES.yearly.savings,
+      });
+    }
+    if (!foundKeys.has('monthly')) {
+      plans.push({
+        key: 'monthly',
+        pkg: null,
+        priceString: `${PREMIUM_PRICES.monthly.price}€`,
+      });
+    }
+    if (!foundKeys.has('lifetime')) {
+      plans.push({
+        key: 'lifetime',
+        pkg: null,
+        priceString: `${PREMIUM_PRICES.lifetime.price}€`,
+      });
+    }
+
+    // Sort: yearly first, then monthly, then lifetime
+    const order: PlanKey[] = ['yearly', 'monthly', 'lifetime'];
+    plans.sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
+
+    return plans;
+  }, [packages]);
+
+  const selectedPlan = displayPlans.find((p) => p.key === selectedPlanKey);
+
   const handleSubscribe = async () => {
-    if (isLoading) return;
+    if (isLoading || !selectedPlan) return;
+
+    if (!selectedPlan.pkg) {
+      // No RevenueCat package available — offerings didn't load
+      Alert.alert(tr('common.error'), tr('premium.purchaseError'));
+      return;
+    }
 
     setIsLoading(true);
-    const result = await subscribe(selectedPlan);
+    const result = await subscribe(selectedPlan.pkg);
     setIsLoading(false);
+
+    if (result.error === 'cancelled') return;
 
     if (result.success) {
       Alert.alert(
@@ -178,129 +263,63 @@ export default function PremiumScreen() {
         {/* Plans */}
         <Text style={[styles.plansTitle, { color: t.text }]}>{tr('premium.choosePlan')}</Text>
 
-        <AnimatedPressable
-          onPress={() => setSelectedPlan('yearly')}
-          style={[
-            styles.planCard,
-            {
-              backgroundColor: t.card,
-              borderColor: selectedPlan === 'yearly' ? t.accent : t.border,
-              borderWidth: selectedPlan === 'yearly' ? 2 : 1,
-            },
-            selectedPlan === 'yearly' ? shadows.md : shadows.sm,
-          ]}
-        >
-          {PREMIUM_PRICES.yearly.savings && (
-            <View style={[styles.savingsBadge, { backgroundColor: t.accent }]}>
-              <Text style={styles.savingsText}>{tr('premium.save', { amount: PREMIUM_PRICES.yearly.savings })}</Text>
-            </View>
-          )}
-          <View style={styles.planHeader}>
-            <View style={styles.planRadio}>
-              <View
-                style={[
-                  styles.radioOuter,
-                  { borderColor: selectedPlan === 'yearly' ? t.accent : t.border },
-                ]}
-              >
-                {selectedPlan === 'yearly' && (
-                  <View style={[styles.radioInner, { backgroundColor: t.accent }]} />
+        {displayPlans.map((plan) => (
+          <AnimatedPressable
+            key={plan.key}
+            onPress={() => setSelectedPlanKey(plan.key)}
+            style={[
+              styles.planCard,
+              {
+                backgroundColor: t.card,
+                borderColor: selectedPlanKey === plan.key ? t.accent : t.border,
+                borderWidth: selectedPlanKey === plan.key ? 2 : 1,
+              },
+              selectedPlanKey === plan.key ? shadows.md : shadows.sm,
+            ]}
+          >
+            {plan.savings && (
+              <View style={[styles.savingsBadge, { backgroundColor: t.accent }]}>
+                <Text style={styles.savingsText}>{tr('premium.save', { amount: plan.savings })}</Text>
+              </View>
+            )}
+            <View style={styles.planHeader}>
+              <View style={styles.planRadio}>
+                <View
+                  style={[
+                    styles.radioOuter,
+                    { borderColor: selectedPlanKey === plan.key ? t.accent : t.border },
+                  ]}
+                >
+                  {selectedPlanKey === plan.key && (
+                    <View style={[styles.radioInner, { backgroundColor: t.accent }]} />
+                  )}
+                </View>
+              </View>
+              <View style={styles.planDetails}>
+                <Text style={[styles.planName, { color: t.text }]}>
+                  {plan.key === 'yearly' && tr('premium.planYearly')}
+                  {plan.key === 'monthly' && tr('premium.planMonthly')}
+                  {plan.key === 'lifetime' && tr('premium.planLifetime')}
+                </Text>
+                <Text style={[styles.planPeriod, { color: t.textMuted }]}>
+                  {plan.key === 'yearly' && tr('premium.billedYearly')}
+                  {plan.key === 'monthly' && tr('premium.cancelAnytime')}
+                  {plan.key === 'lifetime' && tr('premium.oneTimePayment')}
+                </Text>
+              </View>
+              <View style={styles.planPricing}>
+                <Text style={[styles.planPrice, { color: t.text }]}>
+                  {plan.priceString}
+                </Text>
+                {plan.key !== 'lifetime' && (
+                  <Text style={[styles.planPriceUnit, { color: t.textMuted }]}>
+                    {plan.key === 'yearly' ? tr('premium.perYear') : tr('premium.perMonth')}
+                  </Text>
                 )}
               </View>
             </View>
-            <View style={styles.planDetails}>
-              <Text style={[styles.planName, { color: t.text }]}>{tr('premium.planYearly')}</Text>
-              <Text style={[styles.planPeriod, { color: t.textMuted }]}>
-                {tr('premium.billedYearly')}
-              </Text>
-            </View>
-            <View style={styles.planPricing}>
-              <Text style={[styles.planPrice, { color: t.text }]}>
-                {PREMIUM_PRICES.yearly.price}€
-              </Text>
-              <Text style={[styles.planPriceUnit, { color: t.textMuted }]}>{tr('premium.perYear')}</Text>
-            </View>
-          </View>
-        </AnimatedPressable>
-
-        <AnimatedPressable
-          onPress={() => setSelectedPlan('monthly')}
-          style={[
-            styles.planCard,
-            {
-              backgroundColor: t.card,
-              borderColor: selectedPlan === 'monthly' ? t.accent : t.border,
-              borderWidth: selectedPlan === 'monthly' ? 2 : 1,
-            },
-            selectedPlan === 'monthly' ? shadows.md : shadows.sm,
-          ]}
-        >
-          <View style={styles.planHeader}>
-            <View style={styles.planRadio}>
-              <View
-                style={[
-                  styles.radioOuter,
-                  { borderColor: selectedPlan === 'monthly' ? t.accent : t.border },
-                ]}
-              >
-                {selectedPlan === 'monthly' && (
-                  <View style={[styles.radioInner, { backgroundColor: t.accent }]} />
-                )}
-              </View>
-            </View>
-            <View style={styles.planDetails}>
-              <Text style={[styles.planName, { color: t.text }]}>{tr('premium.planMonthly')}</Text>
-              <Text style={[styles.planPeriod, { color: t.textMuted }]}>
-                {tr('premium.cancelAnytime')}
-              </Text>
-            </View>
-            <View style={styles.planPricing}>
-              <Text style={[styles.planPrice, { color: t.text }]}>
-                {PREMIUM_PRICES.monthly.price}€
-              </Text>
-              <Text style={[styles.planPriceUnit, { color: t.textMuted }]}>{tr('premium.perMonth')}</Text>
-            </View>
-          </View>
-        </AnimatedPressable>
-
-        <AnimatedPressable
-          onPress={() => setSelectedPlan('lifetime')}
-          style={[
-            styles.planCard,
-            {
-              backgroundColor: t.card,
-              borderColor: selectedPlan === 'lifetime' ? t.accent : t.border,
-              borderWidth: selectedPlan === 'lifetime' ? 2 : 1,
-            },
-            selectedPlan === 'lifetime' ? shadows.md : shadows.sm,
-          ]}
-        >
-          <View style={styles.planHeader}>
-            <View style={styles.planRadio}>
-              <View
-                style={[
-                  styles.radioOuter,
-                  { borderColor: selectedPlan === 'lifetime' ? t.accent : t.border },
-                ]}
-              >
-                {selectedPlan === 'lifetime' && (
-                  <View style={[styles.radioInner, { backgroundColor: t.accent }]} />
-                )}
-              </View>
-            </View>
-            <View style={styles.planDetails}>
-              <Text style={[styles.planName, { color: t.text }]}>{tr('premium.planLifetime')}</Text>
-              <Text style={[styles.planPeriod, { color: t.textMuted }]}>
-                {tr('premium.oneTimePayment')}
-              </Text>
-            </View>
-            <View style={styles.planPricing}>
-              <Text style={[styles.planPrice, { color: t.text }]}>
-                {PREMIUM_PRICES.lifetime.price}€
-              </Text>
-            </View>
-          </View>
-        </AnimatedPressable>
+          </AnimatedPressable>
+        ))}
 
         {/* Subscribe Button */}
         <AnimatedPressable
