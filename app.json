@@ -3,7 +3,7 @@
     "name": "catacapp",
     "slug": "catacapp",
     "scheme": "catacapp",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -17,7 +17,7 @@
       "supportsTablet": true
     },
     "android": {
-      "versionCode": 3,
+      "versionCode": 4,
       "package": "com.catacapp.app",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
