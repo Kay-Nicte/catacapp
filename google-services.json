@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "600979458540-uauba09qq3frp6o2ij588nfvkh4cte4k.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.catacapp.app",
+            "certificate_hash": "9c96ddf26bf8e99669a6ed3fd92e090594ad7307"
+          }
+        },
+        {
           "client_id": "600979458540-31hmcfi0avmp2t63h7peo9jk7qoi960i.apps.googleusercontent.com",
           "client_type": 3
         }
