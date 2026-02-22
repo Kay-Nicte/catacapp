@@ -97,9 +97,9 @@ export const FREE_LIMITS = {
 
 // Fallback prices (shown when RevenueCat offerings unavailable)
 export const PREMIUM_PRICES = {
-  monthly: { price: 3.99, period: 'mes' },
-  yearly: { price: 29.99, period: 'año', savings: '37%' },
-  lifetime: { price: 69.99, period: 'para siempre' },
+  monthly: { price: 4.99, period: 'mes' },
+  yearly: { price: 34.99, period: 'año', savings: '42%' },
+  lifetime: { price: 89.99, period: 'para siempre' },
 };
 
 // ── Helpers ───────────────────────────────────────────────
