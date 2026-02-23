@@ -296,7 +296,10 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
       if (error.userCancelled) {
         return { success: false, error: 'cancelled' };
       }
-      return { success: false, error: i18n.t('premium.purchaseError') };
+      const code = error.code || 'unknown';
+      const msg = error.message || String(error);
+      console.error('Purchase error:', code, msg);
+      return { success: false, error: `${i18n.t('premium.purchaseError')}\n\n[${code}] ${msg}` };
     }
   };
 
