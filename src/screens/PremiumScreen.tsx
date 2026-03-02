@@ -24,6 +24,7 @@ import ScreenContainer from '../components/layout/ScreenContainer';
 import { useTranslation } from 'react-i18next';
 import { getLocale } from '../i18n';
 
+import { fonts } from '../theme/fonts';
 type PlanKey = 'monthly' | 'yearly' | 'lifetime';
 
 interface DisplayPlan {
@@ -409,11 +410,11 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontSize: 28,
-    fontWeight: '800',
+    fontFamily: fonts.extraBold,
   },
   heroSubtitle: {
     fontSize: 15,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     textAlign: 'center',
     marginTop: 8,
     paddingHorizontal: 20,
@@ -439,12 +440,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   featureContent: { flex: 1, gap: 2 },
-  featureName: { fontSize: 15, fontWeight: '700' },
-  featureDesc: { fontSize: 13, fontWeight: '500' },
+  featureName: { fontSize: 15, fontFamily: fonts.bold },
+  featureDesc: { fontSize: 13, fontFamily: fonts.medium },
 
   plansTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontFamily: fonts.extraBold,
     marginBottom: 16,
   },
 
@@ -466,7 +467,7 @@ const styles = StyleSheet.create({
   savingsText: {
     color: '#fff',
     fontSize: 11,
-    fontWeight: '800',
+    fontFamily: fonts.extraBold,
   },
   planHeader: {
     flexDirection: 'row',
@@ -489,14 +490,14 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   planDetails: { flex: 1, gap: 2 },
-  planName: { fontSize: 17, fontWeight: '700' },
-  planPeriod: { fontSize: 13, fontWeight: '500' },
+  planName: { fontSize: 17, fontFamily: fonts.bold },
+  planPeriod: { fontSize: 13, fontFamily: fonts.medium },
   planPricing: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
-  planPrice: { fontSize: 24, fontWeight: '800' },
-  planPriceUnit: { fontSize: 14, fontWeight: '600', marginLeft: 2 },
+  planPrice: { fontSize: 24, fontFamily: fonts.extraBold },
+  planPriceUnit: { fontSize: 14, fontFamily: fonts.semiBold, marginLeft: 2 },
 
   subscribeButton: {
     height: 56,
@@ -508,7 +509,7 @@ const styles = StyleSheet.create({
   subscribeButtonText: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: fonts.extraBold,
   },
 
   redeemSection: {
@@ -518,7 +519,7 @@ const styles = StyleSheet.create({
   },
   redeemTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     marginBottom: 10,
   },
   redeemRow: {
@@ -532,7 +533,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 14,
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     letterSpacing: 1,
   },
   redeemButton: {
@@ -545,7 +546,7 @@ const styles = StyleSheet.create({
   redeemButtonText: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '800',
+    fontFamily: fonts.extraBold,
   },
 
   restoreButton: {
@@ -554,12 +555,12 @@ const styles = StyleSheet.create({
   },
   restoreText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
   },
 
   terms: {
     fontSize: 12,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     textAlign: 'center',
     lineHeight: 18,
     paddingHorizontal: 10,
@@ -581,11 +582,11 @@ const styles = StyleSheet.create({
   },
   premiumTitle: {
     fontSize: 28,
-    fontWeight: '800',
+    fontFamily: fonts.extraBold,
   },
   premiumSubtitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     marginTop: 8,
   },
   planInfo: {
@@ -598,12 +599,12 @@ const styles = StyleSheet.create({
   },
   planInfoLabel: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     letterSpacing: 0.5,
   },
   planInfoValue: {
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: fonts.extraBold,
     marginTop: 4,
   },
 });

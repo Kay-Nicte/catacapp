@@ -20,6 +20,7 @@ import { usePremium } from '../app/state/PremiumContext';
 import ScreenContainer from '../components/layout/ScreenContainer';
 import i18n, { getLocale } from '../i18n';
 
+import { fonts } from '../theme/fonts';
 const MAX_CONTENT_WIDTH = 700;
 const CHART_HEIGHT = 200;
 
@@ -537,12 +538,12 @@ const styles = StyleSheet.create({
   },
   lockedTitle: {
     fontSize: 24,
-    fontWeight: '800',
+    fontFamily: fonts.extraBold,
     marginBottom: 12,
   },
   lockedDesc: {
     fontSize: 15,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 32,
@@ -558,7 +559,7 @@ const styles = StyleSheet.create({
   unlockButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '800',
+    fontFamily: fonts.extraBold,
   },
 
   header: {
@@ -580,8 +581,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { fontSize: 30, fontWeight: '700' },
-  headerSubtitle: { fontSize: 14, fontWeight: '600', marginTop: 2 },
+  headerTitle: { fontSize: 30, fontFamily: fonts.bold },
+  headerSubtitle: { fontSize: 14, fontFamily: fonts.semiBold, marginTop: 2 },
   premiumBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -592,7 +593,7 @@ const styles = StyleSheet.create({
   },
   premiumBadgeText: {
     fontSize: 12,
-    fontWeight: '800',
+    fontFamily: fonts.extraBold,
   },
 
   scrollView: { flex: 1 },
@@ -619,13 +620,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 10,
   },
-  statTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
-  statValue: { fontSize: 28, fontWeight: '800', marginTop: 4 },
-  statSubtitle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
+  statTitle: { fontSize: 12, fontFamily: fonts.bold, letterSpacing: 0.5 },
+  statValue: { fontSize: 28, fontFamily: fonts.extraBold, marginTop: 4 },
+  statSubtitle: { fontSize: 11, fontFamily: fonts.semiBold, marginTop: 2 },
 
   sectionTitle: {
     fontSize: 12,
-    fontWeight: '900',
+    fontFamily: fonts.black,
     letterSpacing: 0.8,
     marginBottom: 12,
   },
@@ -638,7 +639,7 @@ const styles = StyleSheet.create({
   },
   chartTitle: {
     fontSize: 16,
-    fontWeight: '800',
+    fontFamily: fonts.extraBold,
     marginBottom: 16,
   },
   chartContainer: {
@@ -657,7 +658,7 @@ const styles = StyleSheet.create({
   },
   barValue: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     marginBottom: 4,
   },
   bar: {
@@ -667,13 +668,13 @@ const styles = StyleSheet.create({
   },
   barLabel: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     marginTop: 8,
     textTransform: 'capitalize',
   },
   chartUnit: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     textAlign: 'center',
     marginTop: 8,
   },
@@ -689,7 +690,7 @@ const styles = StyleSheet.create({
   },
   yLabel: {
     fontSize: 10,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     textAlign: 'right',
     paddingRight: 6,
   },
@@ -718,7 +719,7 @@ const styles = StyleSheet.create({
   },
   xLabel: {
     fontSize: 10,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
   },
   emptyChart: {
     height: CHART_HEIGHT - 40,
@@ -728,11 +729,11 @@ const styles = StyleSheet.create({
   },
   emptyChartText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
   },
   emptyChartHint: {
     fontSize: 12,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     textAlign: 'center',
   },
   globalEmpty: {
@@ -744,11 +745,11 @@ const styles = StyleSheet.create({
   },
   globalEmptyTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontFamily: fonts.extraBold,
   },
   globalEmptyHint: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     textAlign: 'center',
     lineHeight: 21,
   },

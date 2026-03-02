@@ -24,6 +24,7 @@ import EditRecordModal from "../components/EditRecordModal";
 import ScreenContainer from "../components/layout/ScreenContainer";
 import { formatDateFull } from "../utils/format";
 
+import { fonts } from '../theme/fonts';
 const typeLabels: RecordType[] = ["FOOD", "POOP", "SLEEP", "WEIGHT", "NOTE"];
 
 function isSameDay(d1: Date, d2: Date): boolean {
@@ -449,14 +450,14 @@ export default function RecordsScreen() {
               onPress={() => setModalOpen(false)}
               style={[styles.btn, { backgroundColor: t.bg, borderColor: t.border }]}
             >
-              <Text style={{ color: t.textMuted, fontWeight: "700" }}>{tr('common.cancel')}</Text>
+              <Text style={{ color: t.textMuted, fontFamily: fonts.bold }}>{tr('common.cancel')}</Text>
             </Pressable>
 
             <Pressable
               onPress={handleAddRecord}
               style={[styles.btn, { backgroundColor: t.accent, borderColor: "transparent" }]}
             >
-              <Text style={{ color: "#fff", fontWeight: "800" }}>{tr('common.save')}</Text>
+              <Text style={{ color: "#fff", fontFamily: fonts.extraBold }}>{tr('common.save')}</Text>
             </Pressable>
           </View>
         </View>
@@ -513,11 +514,11 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 30,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
   headerSubtitle: {
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: fonts.semiBold,
     marginTop: 2,
   },
 
@@ -548,7 +549,7 @@ const styles = StyleSheet.create({
     maxWidth: 280,
     justifyContent: "center",
   },
-  dateText: { fontSize: 14, fontWeight: "700" },
+  dateText: { fontSize: 14, fontFamily: fonts.bold },
 
   filterScroll: {
     gap: 8,
@@ -562,7 +563,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  filterText: { fontSize: 13, fontWeight: "700" },
+  filterText: { fontSize: 13, fontFamily: fonts.bold },
 
   listContent: {
     paddingTop: 12,
@@ -583,14 +584,14 @@ const styles = StyleSheet.create({
     gap: 8,
     flexWrap: "wrap",
   },
-  recordTitle: { fontSize: 15, fontWeight: "800" },
+  recordTitle: { fontSize: 15, fontFamily: fonts.extraBold },
   sourceBadge: {
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
   },
-  sourceBadgeText: { fontSize: 10, fontWeight: "800", letterSpacing: 0.5 },
-  recordMeta: { fontSize: 13, fontWeight: "600" },
+  sourceBadgeText: { fontSize: 10, fontFamily: fonts.extraBold, letterSpacing: 0.5 },
+  recordMeta: { fontSize: 13, fontFamily: fonts.semiBold },
   separator: { height: 10 },
 
   emptyContainer: {
@@ -599,8 +600,8 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
     gap: 12,
   },
-  emptyText: { fontSize: 16, fontWeight: "600" },
-  emptyHint: { fontSize: 13, fontWeight: "500" },
+  emptyText: { fontSize: 16, fontFamily: fonts.semiBold },
+  emptyHint: { fontSize: 13, fontFamily: fonts.medium },
 
   fab: {
     position: "absolute",
@@ -638,11 +639,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 16,
   },
-  modalTitle: { fontSize: 22, fontWeight: "900" },
-  modalSubtitle: { fontSize: 13, fontWeight: "600", marginTop: 2 },
+  modalTitle: { fontSize: 22, fontFamily: fonts.black },
+  modalSubtitle: { fontSize: 13, fontFamily: fonts.semiBold, marginTop: 2 },
   label: {
     fontSize: 11,
-    fontWeight: "900",
+    fontFamily: fonts.black,
     letterSpacing: 0.8,
     marginTop: 14,
     marginBottom: 8,
@@ -656,14 +657,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  typeChipText: { fontSize: 13, fontWeight: "700" },
+  typeChipText: { fontSize: 13, fontFamily: fonts.bold },
   input: {
     borderWidth: 1,
     borderRadius: 14,
     paddingHorizontal: 14,
     height: 48,
     fontSize: 15,
-    fontWeight: "600",
+    fontFamily: fonts.semiBold,
   },
   modalActions: { flexDirection: "row", gap: 12, marginTop: 20 },
   btn: {
@@ -678,7 +679,7 @@ const styles = StyleSheet.create({
   memorialHint: {
     marginVertical: 10,
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: fonts.semiBold,
     textAlign: "center",
   },
 });

@@ -21,6 +21,7 @@ import { AnimatedPressable } from "./ui/AnimatedPressable";
 import { shadows } from "../theme/tokens";
 import { formatTime } from "../utils/format";
 
+import { fonts } from '../theme/fonts';
 interface RoutinesModalProps {
   visible: boolean;
   onClose: () => void;
@@ -326,7 +327,7 @@ export default function RoutinesModal({ visible, onClose, petId }: RoutinesModal
                 style={[styles.cancelBtn, { backgroundColor: t.card, borderColor: t.border }]}
                 scale={0.96}
               >
-                <Text style={{ color: t.textMuted, fontWeight: "700" }}>{tr('common.cancel')}</Text>
+                <Text style={{ color: t.textMuted, fontFamily: fonts.bold }}>{tr('common.cancel')}</Text>
               </AnimatedPressable>
 
               <AnimatedPressable
@@ -334,7 +335,7 @@ export default function RoutinesModal({ visible, onClose, petId }: RoutinesModal
                 style={[styles.saveBtn, { backgroundColor: t.accent }, shadows.md]}
                 scale={0.96}
               >
-                <Text style={{ color: "#fff", fontWeight: "800" }}>
+                <Text style={{ color: "#fff", fontFamily: fonts.extraBold }}>
                   {editingId ? tr('common.save') : tr('routines.createRoutine')}
                 </Text>
               </AnimatedPressable>
@@ -355,8 +356,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
-  title: { fontSize: 24, fontWeight: "800" },
-  subtitle: { fontSize: 13, fontWeight: "600", marginTop: 2 },
+  title: { fontSize: 24, fontFamily: fonts.extraBold },
+  subtitle: { fontSize: 13, fontFamily: fonts.semiBold, marginTop: 2 },
 
   listContent: { paddingHorizontal: 20, paddingTop: 8 },
 
@@ -366,8 +367,8 @@ const styles = StyleSheet.create({
     paddingVertical: 80,
     gap: 12,
   },
-  emptyText: { fontSize: 16, fontWeight: "600" },
-  emptyHint: { fontSize: 13, fontWeight: "500", textAlign: "center", paddingHorizontal: 40 },
+  emptyText: { fontSize: 16, fontFamily: fonts.semiBold },
+  emptyHint: { fontSize: 13, fontFamily: fonts.medium, textAlign: "center", paddingHorizontal: 40 },
 
   routineCard: {
     borderRadius: 16,
@@ -381,9 +382,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   routineInfo: { flex: 1, paddingRight: 12, gap: 4 },
-  routineTitle: { fontSize: 15, fontWeight: "800" },
-  routineMeta: { fontSize: 13, fontWeight: "600" },
-  inactiveLabel: { fontSize: 11, fontWeight: "700", marginTop: 2 },
+  routineTitle: { fontSize: 15, fontFamily: fonts.extraBold },
+  routineMeta: { fontSize: 13, fontFamily: fonts.semiBold },
+  inactiveLabel: { fontSize: 11, fontFamily: fonts.bold, marginTop: 2 },
   routineActions: { flexDirection: "row", gap: 8 },
   actionBtn: {
     width: 36,
@@ -396,7 +397,7 @@ const styles = StyleSheet.create({
   formContainer: { flex: 1, paddingHorizontal: 20 },
   label: {
     fontSize: 11,
-    fontWeight: "900",
+    fontFamily: fonts.black,
     letterSpacing: 0.8,
     marginTop: 16,
     marginBottom: 8,
@@ -410,14 +411,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  typeText: { fontSize: 13, fontWeight: "700" },
+  typeText: { fontSize: 13, fontFamily: fonts.bold },
   input: {
     borderWidth: 1,
     borderRadius: 14,
     paddingHorizontal: 14,
     height: 48,
     fontSize: 15,
-    fontWeight: "600",
+    fontFamily: fonts.semiBold,
   },
   timeInput: {
     flexDirection: "row",
@@ -427,11 +428,11 @@ const styles = StyleSheet.create({
   timeText: {
     flex: 1,
     fontSize: 15,
-    fontWeight: "600",
+    fontFamily: fonts.semiBold,
   },
   hint: {
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: fonts.semiBold,
     marginTop: 12,
     lineHeight: 18,
   },
@@ -448,7 +449,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
   },
-  addBtnText: { color: "#fff", fontSize: 16, fontWeight: "800" },
+  addBtnText: { color: "#fff", fontSize: 16, fontFamily: fonts.extraBold },
   formActions: { flexDirection: "row", gap: 12 },
   cancelBtn: {
     flex: 1,

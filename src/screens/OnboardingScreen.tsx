@@ -15,6 +15,7 @@ import { useOnboarding } from '../app/state/OnboardingContext';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../app/navigation/AuthStack';
 
+import { fonts } from '../theme/fonts';
 interface Slide {
   id: string;
   icon: string;
@@ -158,7 +159,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: fonts.bold,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -195,7 +196,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     textAlign: 'center',
   },
   skipButton: {

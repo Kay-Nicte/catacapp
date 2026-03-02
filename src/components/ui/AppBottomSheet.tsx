@@ -10,6 +10,7 @@ import { useTheme } from "../../theme/useTheme";
 import { Icon } from "./Icon";
 import { haptics } from "../../utils/haptics";
 
+import { fonts } from '../../theme/fonts';
 export interface AppBottomSheetRef {
   open: () => void;
   close: () => void;
@@ -157,11 +158,11 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    fontWeight: "800",
+    fontFamily: fonts.extraBold,
   },
   subtitle: {
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: fonts.semiBold,
   },
 });
 

@@ -28,6 +28,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../app/navigation/AppStack";
 import { formatDatePadded } from "../utils/format";
 
+import { fonts } from '../theme/fonts';
 export default function PetFormScreen() {
   const t = useTheme();
   const { t: tr } = useTranslation();
@@ -347,7 +348,7 @@ export default function PetFormScreen() {
                   },
                 ]}
               >
-                <Text style={{ color: isSelected ? t.accent : t.textMuted, fontWeight: "800", fontSize: 12 }}>
+                <Text style={{ color: isSelected ? t.accent : t.textMuted, fontFamily: fonts.extraBold, fontSize: 12 }}>
                   {item.label}
                 </Text>
                 {isTypeLocked && (
@@ -495,7 +496,7 @@ export default function PetFormScreen() {
             { backgroundColor: t.accent, opacity: readOnly ? 0.5 : 1 },
           ]}
         >
-          <Text style={{ color: "#fff", fontWeight: "900" }}>
+          <Text style={{ color: "#fff", fontFamily: fonts.black }}>
             {editing ? tr('pets.saveChanges') : tr('common.save')}
           </Text>
         </Pressable>
@@ -517,11 +518,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 6,
   },
-  previewText: { marginTop: 8, fontSize: 12, fontWeight: "700" },
+  previewText: { marginTop: 8, fontSize: 12, fontFamily: fonts.bold },
 
   label: {
     fontSize: 12,
-    fontWeight: "900",
+    fontFamily: fonts.black,
     letterSpacing: 0.6,
     marginTop: 14,
     marginBottom: 6,
@@ -532,7 +533,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 44,
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: fonts.semiBold,
   },
   dateButton: {
     borderWidth: 1,
@@ -543,7 +544,7 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: fonts.semiBold,
   },
   clearDate: {
     marginTop: 6,
@@ -551,7 +552,7 @@ const styles = StyleSheet.create({
   },
   clearDateText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: fonts.semiBold,
   },
   doneButton: {
     alignSelf: "flex-end",
@@ -560,7 +561,7 @@ const styles = StyleSheet.create({
   },
   doneButtonText: {
     fontSize: 14,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
   row: { flexDirection: "row", gap: 10 },
   chip: {
@@ -623,11 +624,11 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 14,
   },
-  stateTitle: { fontSize: 14, fontWeight: "900" },
-  stateDesc: { marginTop: 4, fontSize: 12, fontWeight: "600" },
+  stateTitle: { fontSize: 14, fontFamily: fonts.black },
+  stateDesc: { marginTop: 4, fontSize: 12, fontFamily: fonts.semiBold },
   stateAction: { marginTop: 12 },
-  stateActionText: { fontSize: 12, fontWeight: "800" },
-  deleteText: { fontSize: 12, fontWeight: "900" },
+  stateActionText: { fontSize: 12, fontFamily: fonts.extraBold },
+  deleteText: { fontSize: 12, fontFamily: fonts.black },
 
   footer: {
     borderTopWidth: 1,

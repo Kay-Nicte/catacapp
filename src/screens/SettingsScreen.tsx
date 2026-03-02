@@ -37,6 +37,7 @@ import { Icon } from "../components/ui/Icon";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
 import ScreenContainer from "../components/layout/ScreenContainer";
 
+import { fonts } from '../theme/fonts';
 interface SettingRowProps {
   icon: string;
   title: string;
@@ -918,14 +919,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: { fontSize: 30, fontWeight: "700" },
+  headerTitle: { fontSize: 30, fontFamily: fonts.bold },
 
   scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingTop: 10 },
 
   sectionTitle: {
     fontSize: 12,
-    fontWeight: "900",
+    fontFamily: fonts.black,
     letterSpacing: 0.8,
     marginTop: 20,
     marginBottom: 10,
@@ -952,8 +953,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   accountInfo: { flex: 1, gap: 2 },
-  accountName: { fontSize: 17, fontWeight: "700" },
-  accountEmail: { fontSize: 13, fontWeight: "500" },
+  accountName: { fontSize: 17, fontFamily: fonts.bold },
+  accountEmail: { fontSize: 13, fontFamily: fonts.medium },
   premiumChip: {
     flexDirection: "row",
     alignItems: "center",
@@ -965,7 +966,7 @@ const styles = StyleSheet.create({
   premiumChipText: {
     color: "#fff",
     fontSize: 12,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   premiumBanner: {
@@ -986,12 +987,12 @@ const styles = StyleSheet.create({
   premiumBannerTitle: {
     color: "#fff",
     fontSize: 18,
-    fontWeight: "800",
+    fontFamily: fonts.extraBold,
   },
   premiumBannerSubtitle: {
     color: "rgba(255,255,255,0.8)",
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: fonts.semiBold,
   },
 
   summaryCard: {
@@ -1006,8 +1007,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-around",
   },
   summaryItem: { alignItems: "center", flex: 1 },
-  summaryNumber: { fontSize: 28, fontWeight: "800" },
-  summaryLabel: { fontSize: 12, fontWeight: "600", marginTop: 4 },
+  summaryNumber: { fontSize: 28, fontFamily: fonts.extraBold },
+  summaryLabel: { fontSize: 12, fontFamily: fonts.semiBold, marginTop: 4 },
   summaryDivider: { width: 1, height: 40, opacity: 0.5 },
 
   settingRow: {
@@ -1030,8 +1031,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  settingTitle: { fontSize: 15, fontWeight: "700" },
-  settingSubtitle: { fontSize: 12, fontWeight: "500" },
+  settingTitle: { fontSize: 15, fontFamily: fonts.bold },
+  settingSubtitle: { fontSize: 12, fontFamily: fonts.medium },
   premiumBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -1042,7 +1043,7 @@ const styles = StyleSheet.create({
   },
   premiumBadgeText: {
     fontSize: 10,
-    fontWeight: "800",
+    fontFamily: fonts.extraBold,
   },
 
   rowDivider: { height: 1, marginLeft: 64, opacity: 0.5 },
@@ -1065,13 +1066,13 @@ const styles = StyleSheet.create({
   },
   themeOptionText: {
     fontSize: 13,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   versionText: {
     textAlign: "center",
     fontSize: 12,
-    fontWeight: "500",
+    fontFamily: fonts.medium,
     marginTop: 20,
     marginBottom: 10,
   },
@@ -1097,9 +1098,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 16,
   },
-  privacyTitle: { fontSize: 20, fontWeight: "800" },
+  privacyTitle: { fontSize: 20, fontFamily: fonts.extraBold },
   privacyScroll: { maxHeight: 500 },
-  privacyDate: { fontSize: 12, fontWeight: "600", marginBottom: 16 },
-  privacySectionTitle: { fontSize: 15, fontWeight: "800", marginTop: 16, marginBottom: 6 },
-  privacyBody: { fontSize: 14, fontWeight: "500", lineHeight: 21 },
+  privacyDate: { fontSize: 12, fontFamily: fonts.semiBold, marginBottom: 16 },
+  privacySectionTitle: { fontSize: 15, fontFamily: fonts.extraBold, marginTop: 16, marginBottom: 6 },
+  privacyBody: { fontSize: 14, fontFamily: fonts.medium, lineHeight: 21 },
 });

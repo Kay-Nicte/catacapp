@@ -1,6 +1,6 @@
 import './src/i18n';
 import React, { useEffect, useCallback } from "react";
-import { StatusBar, View, ActivityIndicator } from "react-native";
+import { StatusBar, View, ActivityIndicator, Text, TextInput } from "react-native";
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { getDeviceTypeAsync, DeviceType } from 'expo-device';
 import { NavigationContainer } from "@react-navigation/native";
@@ -9,13 +9,14 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as SplashScreen from "expo-splash-screen";
 import {
   useFonts,
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-  Inter_800ExtraBold,
-  Inter_900Black,
-} from "@expo-google-fonts/inter";
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+  Poppins_700Bold,
+  Poppins_800ExtraBold,
+  Poppins_900Black,
+} from "@expo-google-fonts/poppins";
+import { fonts } from "./src/theme/fonts";
 import { ThemeProvider } from "./src/app/state/ThemeContext";
 import { useTheme } from "./src/theme/useTheme";
 import { PetProvider } from "./src/app/state/PetContext";
@@ -39,13 +40,34 @@ function Navigation() {
   const { isLoading: isOnboardingLoading } = useOnboarding();
 
   const [fontsLoaded] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-    Inter_800ExtraBold,
-    Inter_900Black,
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+    Poppins_800ExtraBold,
+    Poppins_900Black,
   });
+
+  // Apply Poppins as default font for all Text and TextInput
+  if (fontsLoaded) {
+    const defaultTextStyle = { fontFamily: fonts.regular };
+    const origTextRender = (Text as any).render;
+    if (origTextRender && !(Text as any).__poppinsPatched) {
+      (Text as any).__poppinsPatched = true;
+      (Text as any).render = function (props: any, ref: any) {
+        const { style, ...rest } = props;
+        return origTextRender.call(this, { ...rest, style: [defaultTextStyle, style] }, ref);
+      };
+    }
+    const origInputRender = (TextInput as any).render;
+    if (origInputRender && !(TextInput as any).__poppinsPatched) {
+      (TextInput as any).__poppinsPatched = true;
+      (TextInput as any).render = function (props: any, ref: any) {
+        const { style, ...rest } = props;
+        return origInputRender.call(this, { ...rest, style: [defaultTextStyle, style] }, ref);
+      };
+    }
+  }
 
   const isLoading = isAuthLoading || isOnboardingLoading || !fontsLoaded;
 

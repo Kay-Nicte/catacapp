@@ -25,6 +25,7 @@ import ScreenContainer from "../components/layout/ScreenContainer";
 import { shadows } from "../theme/tokens";
 import { formatDateLong, formatDateShort } from "../utils/format";
 
+import { fonts } from '../theme/fonts';
 function isUpcoming(dateString?: string): boolean {
   if (!dateString) return false;
   const date = new Date(dateString);
@@ -426,14 +427,14 @@ export default function VaccinesScreen() {
               onPress={() => setModalOpen(false)}
               style={[styles.btn, { backgroundColor: t.bg, borderColor: t.border }]}
             >
-              <Text style={{ color: t.textMuted, fontWeight: "700" }}>{tr('common.cancel')}</Text>
+              <Text style={{ color: t.textMuted, fontFamily: fonts.bold }}>{tr('common.cancel')}</Text>
             </AnimatedPressable>
 
             <AnimatedPressable
               onPress={handleSave}
               style={[styles.btn, { backgroundColor: t.accent, borderColor: "transparent" }]}
             >
-              <Text style={{ color: "#fff", fontWeight: "800" }}>{tr('common.save')}</Text>
+              <Text style={{ color: "#fff", fontFamily: fonts.extraBold }}>{tr('common.save')}</Text>
             </AnimatedPressable>
           </View>
         </View>
@@ -462,8 +463,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: { fontSize: 30, fontWeight: "700" },
-  headerSubtitle: { fontSize: 14, fontWeight: "600", marginTop: 2 },
+  headerTitle: { fontSize: 30, fontFamily: fonts.bold },
+  headerSubtitle: { fontSize: 14, fontFamily: fonts.semiBold, marginTop: 2 },
 
   sectionHeader: {
     flexDirection: "row",
@@ -472,7 +473,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     marginBottom: 10,
   },
-  sectionTitle: { fontSize: 12, fontWeight: "900", letterSpacing: 0.8 },
+  sectionTitle: { fontSize: 12, fontFamily: fonts.black, letterSpacing: 0.8 },
   badge: {
     minWidth: 20,
     height: 20,
@@ -481,7 +482,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 6,
   },
-  badgeText: { fontSize: 11, fontWeight: "800", color: "#fff" },
+  badgeText: { fontSize: 11, fontFamily: fonts.extraBold, color: "#fff" },
 
   alertCard: {
     flexDirection: "row",
@@ -493,8 +494,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   alertContent: { flex: 1 },
-  alertTitle: { fontSize: 15, fontWeight: "700" },
-  alertDate: { fontSize: 13, fontWeight: "600", marginTop: 2 },
+  alertTitle: { fontSize: 15, fontFamily: fonts.bold },
+  alertDate: { fontSize: 13, fontFamily: fonts.semiBold, marginTop: 2 },
 
   listContent: { paddingBottom: 80 },
   separator: { height: 10 },
@@ -515,10 +516,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   vaccineInfo: { flex: 1, gap: 2 },
-  vaccineName: { fontSize: 16, fontWeight: "800" },
-  vaccineDate: { fontSize: 13, fontWeight: "600" },
-  vaccineNext: { fontSize: 12, fontWeight: "600" },
-  vaccineNotes: { fontSize: 12, fontWeight: "500", fontStyle: "italic", marginTop: 2 },
+  vaccineName: { fontSize: 16, fontFamily: fonts.extraBold },
+  vaccineDate: { fontSize: 13, fontFamily: fonts.semiBold },
+  vaccineNext: { fontSize: 12, fontFamily: fonts.semiBold },
+  vaccineNotes: { fontSize: 12, fontFamily: fonts.medium, fontStyle: "italic", marginTop: 2 },
 
   emptyContainer: {
     alignItems: "center",
@@ -526,8 +527,8 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
     gap: 12,
   },
-  emptyText: { fontSize: 16, fontWeight: "600" },
-  emptyHint: { fontSize: 13, fontWeight: "500" },
+  emptyText: { fontSize: 16, fontFamily: fonts.semiBold },
+  emptyHint: { fontSize: 13, fontFamily: fonts.medium },
 
   fab: {
     position: "absolute",
@@ -543,7 +544,7 @@ const styles = StyleSheet.create({
   memorialHint: {
     marginVertical: 10,
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: fonts.semiBold,
     textAlign: "center",
   },
 
@@ -568,12 +569,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 16,
   },
-  modalTitle: { fontSize: 20, fontWeight: "800" },
-  modalSubtitle: { fontSize: 13, fontWeight: "600", marginTop: 2 },
+  modalTitle: { fontSize: 20, fontFamily: fonts.extraBold },
+  modalSubtitle: { fontSize: 13, fontFamily: fonts.semiBold, marginTop: 2 },
   scrollContent: { maxHeight: 400 },
   label: {
     fontSize: 11,
-    fontWeight: "900",
+    fontFamily: fonts.black,
     letterSpacing: 0.8,
     marginTop: 14,
     marginBottom: 8,
@@ -584,7 +585,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     height: 48,
     fontSize: 15,
-    fontWeight: "600",
+    fontFamily: fonts.semiBold,
   },
   dateInput: {
     flexDirection: "row",
@@ -594,7 +595,7 @@ const styles = StyleSheet.create({
   dateText: {
     flex: 1,
     fontSize: 15,
-    fontWeight: "600",
+    fontFamily: fonts.semiBold,
   },
   textArea: {
     borderWidth: 1,
@@ -602,7 +603,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    fontWeight: "600",
+    fontFamily: fonts.semiBold,
     minHeight: 80,
     textAlignVertical: "top",
   },

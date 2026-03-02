@@ -24,6 +24,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../app/navigation/AuthStack';
 import { Image } from 'react-native';
 
+import { fonts } from '../theme/fonts';
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
 const GOOGLE_ICON = 'https://developers.google.com/identity/images/g-logo.png';
@@ -251,12 +252,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '800',
+    fontFamily: fonts.extraBold,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 15,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     marginBottom: 32,
   },
 
@@ -265,7 +266,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 11,
-    fontWeight: '900',
+    fontFamily: fonts.black,
     letterSpacing: 0.8,
     marginBottom: 8,
     marginLeft: 4,
@@ -282,7 +283,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
   },
 
   button: {
@@ -295,7 +296,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontSize: 17,
-    fontWeight: '800',
+    fontFamily: fonts.extraBold,
   },
 
   divider: {
@@ -310,7 +311,7 @@ const styles = StyleSheet.create({
   dividerText: {
     marginHorizontal: 16,
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
   },
 
   googleButton: {
@@ -328,13 +329,13 @@ const styles = StyleSheet.create({
   },
   googleButtonText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: '#333',
   },
 
   terms: {
     fontSize: 13,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     textAlign: 'center',
     marginTop: 20,
     lineHeight: 20,
@@ -347,10 +348,10 @@ const styles = StyleSheet.create({
   },
   loginPromptText: {
     fontSize: 15,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
   },
   loginLink: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
   },
 });

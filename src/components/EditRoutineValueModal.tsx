@@ -17,6 +17,7 @@ import { RecordType } from "../app/state/RecordsContext";
 import { Icon } from "./ui/Icon";
 import { formatTime } from "../utils/format";
 
+import { fonts } from '../theme/fonts';
 const typeLabels: RecordType[] = ["FOOD", "POOP", "SLEEP", "WEIGHT", "NOTE"];
 
 interface EditRecordModalProps {
@@ -215,7 +216,7 @@ export default function EditRecordModal({
               { backgroundColor: t.bg, borderColor: t.border },
             ]}
           >
-            <Text style={{ color: t.textMuted, fontWeight: "700" }}>
+            <Text style={{ color: t.textMuted, fontFamily: fonts.bold }}>
               {tr('common.cancel')}
             </Text>
           </Pressable>
@@ -227,7 +228,7 @@ export default function EditRecordModal({
               { backgroundColor: t.accent, borderColor: "transparent" },
             ]}
           >
-            <Text style={{ color: "#fff", fontWeight: "800" }}>{tr('common.save')}</Text>
+            <Text style={{ color: "#fff", fontFamily: fonts.extraBold }}>{tr('common.save')}</Text>
           </Pressable>
         </View>
       </View>
@@ -257,12 +258,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 16,
   },
-  modalTitle: { fontSize: 20, fontWeight: "800" },
-  modalSubtitle: { fontSize: 13, fontWeight: "600", marginTop: 2 },
+  modalTitle: { fontSize: 20, fontFamily: fonts.extraBold },
+  modalSubtitle: { fontSize: 13, fontFamily: fonts.semiBold, marginTop: 2 },
   scrollContent: { maxHeight: 400 },
   label: {
     fontSize: 11,
-    fontWeight: "900",
+    fontFamily: fonts.black,
     letterSpacing: 0.8,
     marginTop: 14,
     marginBottom: 8,
@@ -276,14 +277,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  typeText: { fontSize: 13, fontWeight: "700" },
+  typeText: { fontSize: 13, fontFamily: fonts.bold },
   input: {
     borderWidth: 1,
     borderRadius: 14,
     paddingHorizontal: 14,
     height: 48,
     fontSize: 15,
-    fontWeight: "600",
+    fontFamily: fonts.semiBold,
   },
   timeInput: {
     flexDirection: "row",
@@ -293,7 +294,7 @@ const styles = StyleSheet.create({
   timeText: {
     flex: 1,
     fontSize: 15,
-    fontWeight: "600",
+    fontFamily: fonts.semiBold,
   },
   modalActions: { flexDirection: "row", gap: 12, marginTop: 20 },
   btn: {

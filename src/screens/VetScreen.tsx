@@ -21,6 +21,7 @@ import ScreenContainer from "../components/layout/ScreenContainer";
 import { formatTime } from "../utils/format";
 import i18n, { getLocale } from "../i18n";
 
+import { fonts } from '../theme/fonts';
 export default function VetScreen() {
   const t = useTheme();
   const { t: tr } = useTranslation();
@@ -331,11 +332,11 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 30,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
   headerSubtitle: {
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: fonts.semiBold,
     marginTop: 2,
   },
 
@@ -348,7 +349,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: "900",
+    fontFamily: fonts.black,
     letterSpacing: 0.8,
   },
   badge: {
@@ -361,7 +362,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 11,
-    fontWeight: "800",
+    fontFamily: fonts.extraBold,
     color: "#fff",
   },
 
@@ -392,11 +393,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  dateDay: { fontSize: 18, fontWeight: "800", lineHeight: 20 },
-  dateMonth: { fontSize: 10, fontWeight: "700", letterSpacing: 0.5 },
+  dateDay: { fontSize: 18, fontFamily: fonts.extraBold, lineHeight: 20 },
+  dateMonth: { fontSize: 10, fontFamily: fonts.bold, letterSpacing: 0.5 },
   visitInfo: { flex: 1, gap: 2, paddingRight: 10 },
-  visitReason: { fontSize: 15, fontWeight: "800" },
-  visitTime: { fontSize: 13, fontWeight: "600" },
+  visitReason: { fontSize: 15, fontFamily: fonts.extraBold },
+  visitTime: { fontSize: 13, fontFamily: fonts.semiBold },
   completeBtn: {
     width: 34,
     height: 34,
@@ -406,7 +407,7 @@ const styles = StyleSheet.create({
   },
   visitNotes: {
     fontSize: 13,
-    fontWeight: "500",
+    fontFamily: fonts.medium,
     marginTop: 10,
     lineHeight: 18,
   },
@@ -422,8 +423,8 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
     gap: 12,
   },
-  emptyText: { fontSize: 16, fontWeight: "600" },
-  emptyHint: { fontSize: 13, fontWeight: "500" },
+  emptyText: { fontSize: 16, fontFamily: fonts.semiBold },
+  emptyHint: { fontSize: 13, fontFamily: fonts.medium },
 
   fab: {
     position: "absolute",
@@ -439,7 +440,7 @@ const styles = StyleSheet.create({
   memorialHint: {
     marginVertical: 10,
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: fonts.semiBold,
     textAlign: "center",
   },
 });

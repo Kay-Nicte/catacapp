@@ -22,6 +22,7 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { RootStackParamList } from "../app/navigation/AppStack";
 import type { TabsParamList } from "../app/navigation/AppTabs";
 
+import { fonts } from '../theme/fonts';
 const SUMMARY_PREFS_KEY = "@catacapp_summary_prefs";
 type SummaryPrefs = Record<string, boolean>; // keyed by RecordType
 const DEFAULT_PREFS: SummaryPrefs = { FOOD: true, POOP: true, SLEEP: true, WEIGHT: true };
@@ -265,7 +266,7 @@ export default function HomeScreen() {
         <Text
           style={{
             color: active ? t.accent : t.textMuted,
-            fontWeight: "800",
+            fontFamily: fonts.extraBold,
             fontSize: 12,
           }}
         >
@@ -683,7 +684,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 30,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
   logo: {
@@ -702,7 +703,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  addBtnText: { fontSize: 13, fontWeight: "600" },
+  addBtnText: { fontSize: 13, fontFamily: fonts.semiBold },
 
   container: { paddingHorizontal: 20 },
   contentContainer: { paddingTop: 10, paddingBottom: 10 },
@@ -727,8 +728,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     position: "relative",
   },
-  petName: { fontSize: 18, fontWeight: "700", marginTop: 10 },
-  petStatus: { marginTop: 2, fontSize: 13, fontWeight: "500" },
+  petName: { fontSize: 18, fontFamily: fonts.bold, marginTop: 10 },
+  petStatus: { marginTop: 2, fontSize: 13, fontFamily: fonts.medium },
   defaultStar: {
     position: "absolute",
     top: 8,
@@ -748,10 +749,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   summaryLeft: { gap: 2 },
-  summaryTitle: { fontSize: 16, fontWeight: "800" },
-  summarySub: { fontSize: 12, fontWeight: "600" },
+  summaryTitle: { fontSize: 16, fontFamily: fonts.extraBold },
+  summarySub: { fontSize: 12, fontFamily: fonts.semiBold },
   summaryRight: { flexDirection: "row", alignItems: "center", gap: 6 },
-  summaryLink: { fontSize: 12, fontWeight: "800", letterSpacing: 0.6 },
+  summaryLink: { fontSize: 12, fontFamily: fonts.extraBold, letterSpacing: 0.6 },
 
   sectionHeader: {
     flexDirection: "row",
@@ -762,7 +763,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: "900",
+    fontFamily: fonts.black,
     letterSpacing: 0.8,
   },
   badge: {
@@ -773,7 +774,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 6,
     fontSize: 11,
-    fontWeight: "800",
+    fontFamily: fonts.extraBold,
     color: "#fff",
     textAlign: "center",
     lineHeight: 20,
@@ -788,8 +789,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   routineLeft: { flex: 1, paddingRight: 10, gap: 2 },
-  routineName: { fontSize: 14, fontWeight: "800" },
-  routineTime: { fontSize: 12, fontWeight: "600" },
+  routineName: { fontSize: 14, fontFamily: fonts.extraBold },
+  routineTime: { fontSize: 12, fontFamily: fonts.semiBold },
   routineActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   iconPill: {
     width: 34,
@@ -822,20 +823,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  summaryName: { fontSize: 16, fontWeight: "600" },
+  summaryName: { fontSize: 16, fontFamily: fonts.semiBold },
   summaryRowRight: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-  summaryValue: { fontSize: 14, fontWeight: "500" },
+  summaryValue: { fontSize: 14, fontFamily: fonts.medium },
 
   separator: { height: 1, opacity: 0.9, marginBottom: 10 },
   divider: { height: 1, opacity: 0.9, marginTop: 12 },
 
-  memorialHint: { marginTop: 10, fontSize: 12, fontWeight: "600" },
-  tip: { marginTop: 10, fontSize: 12, fontWeight: "600" },
-  summaryEmpty: { fontSize: 13, fontWeight: "500", textAlign: "center", paddingVertical: 20 },
+  memorialHint: { marginTop: 10, fontSize: 12, fontFamily: fonts.semiBold },
+  tip: { marginTop: 10, fontSize: 12, fontFamily: fonts.semiBold },
+  summaryEmpty: { fontSize: 13, fontFamily: fonts.medium, textAlign: "center", paddingVertical: 20 },
 
   emptyContainer: {
     flex: 1,
@@ -853,12 +854,12 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 22,
-    fontWeight: "800",
+    fontFamily: fonts.extraBold,
     marginBottom: 10,
   },
   emptyDesc: {
     fontSize: 14,
-    fontWeight: "500",
+    fontFamily: fonts.medium,
     textAlign: "center",
     lineHeight: 20,
     marginBottom: 28,
@@ -874,7 +875,7 @@ const styles = StyleSheet.create({
   emptyBtnText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "800",
+    fontFamily: fonts.extraBold,
   },
 
   modalOverlay: {
@@ -902,12 +903,12 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: "800",
+    fontFamily: fonts.extraBold,
     marginBottom: 4,
   },
   modalDesc: {
     fontSize: 14,
-    fontWeight: "500",
+    fontFamily: fonts.medium,
     marginBottom: 20,
   },
   prefRow: {
@@ -924,7 +925,7 @@ const styles = StyleSheet.create({
   },
   prefLabel: {
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: fonts.semiBold,
   },
   modalCloseBtn: {
     marginTop: 24,
@@ -936,6 +937,6 @@ const styles = StyleSheet.create({
   modalCloseBtnText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "800",
+    fontFamily: fonts.extraBold,
   },
 });

@@ -21,6 +21,7 @@ import { Icon } from "../components/ui/Icon";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
 import ScreenContainer from "../components/layout/ScreenContainer";
 
+import { fonts } from '../theme/fonts';
 export default function HouseholdScreen() {
   const t = useTheme();
   const { t: tr } = useTranslation();
@@ -448,12 +449,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 4,
   },
-  infoTitle: { fontSize: 22, fontWeight: "800" },
-  infoSubtitle: { fontSize: 14, fontWeight: "500", textAlign: "center", lineHeight: 20 },
+  infoTitle: { fontSize: 22, fontFamily: fonts.extraBold },
+  infoSubtitle: { fontSize: 14, fontFamily: fonts.medium, textAlign: "center", lineHeight: 20 },
 
   sectionTitle: {
     fontSize: 12,
-    fontWeight: "900",
+    fontFamily: fonts.black,
     letterSpacing: 0.8,
     marginTop: 24,
     marginBottom: 10,
@@ -480,9 +481,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   memberInfo: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  memberEmail: { fontSize: 15, fontWeight: "600" },
-  ownerBadge: { fontSize: 12, fontWeight: "800" },
-  youBadge: { fontSize: 12, fontWeight: "500" },
+  memberEmail: { fontSize: 15, fontFamily: fonts.semiBold },
+  ownerBadge: { fontSize: 12, fontFamily: fonts.extraBold },
+  youBadge: { fontSize: 12, fontFamily: fonts.medium },
 
   divider: { height: 1, marginLeft: 66, opacity: 0.5 },
 
@@ -498,7 +499,7 @@ const styles = StyleSheet.create({
   actionButtonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   actionButtonOutline: {
@@ -513,7 +514,7 @@ const styles = StyleSheet.create({
   },
   actionButtonOutlineText: {
     fontSize: 16,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   codeCard: {
@@ -524,10 +525,10 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 12,
   },
-  codeLabel: { fontSize: 12, fontWeight: "600" },
-  codeText: { fontSize: 32, fontWeight: "900", letterSpacing: 6 },
-  codeHint: { fontSize: 12, fontWeight: "500" },
-  codeExpiry: { fontSize: 11, fontWeight: "500", marginTop: 4 },
+  codeLabel: { fontSize: 12, fontFamily: fonts.semiBold },
+  codeText: { fontSize: 32, fontFamily: fonts.black, letterSpacing: 6 },
+  codeHint: { fontSize: 12, fontFamily: fonts.medium },
+  codeExpiry: { fontSize: 11, fontFamily: fonts.medium, marginTop: 4 },
 
   joinCard: {
     borderRadius: 16,
@@ -536,10 +537,10 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 10,
   },
-  joinLabel: { fontSize: 15, fontWeight: "700" },
+  joinLabel: { fontSize: 15, fontFamily: fonts.bold },
   joinInput: {
     fontSize: 24,
-    fontWeight: "800",
+    fontFamily: fonts.extraBold,
     letterSpacing: 4,
     textAlign: "center",
     paddingVertical: 14,
@@ -557,14 +558,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
   },
-  joinCancelText: { fontSize: 15, fontWeight: "600" },
+  joinCancelText: { fontSize: 15, fontFamily: fonts.semiBold },
   joinSubmitBtn: {
     flex: 1,
     alignItems: "center",
     paddingVertical: 12,
     borderRadius: 12,
   },
-  joinSubmitText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  joinSubmitText: { color: "#fff", fontSize: 15, fontFamily: fonts.bold },
 
   noteCard: {
     flexDirection: "row",
@@ -574,11 +575,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: 16,
   },
-  noteText: { flex: 1, fontSize: 13, fontWeight: "600", lineHeight: 18 },
+  noteText: { flex: 1, fontSize: 13, fontFamily: fonts.semiBold, lineHeight: 18 },
 
   footerNote: {
     fontSize: 12,
-    fontWeight: "500",
+    fontFamily: fonts.medium,
     textAlign: "center",
     marginTop: 24,
   },
