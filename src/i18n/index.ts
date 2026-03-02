@@ -10,18 +10,19 @@ import ca from './ca';
 import eu from './eu';
 import gl from './gl';
 import tk from './tk';
+import de from './de';
 
 const LANGUAGE_KEY = '@catacapp_language';
 
-const SUPPORTED_LANGUAGES = ['es', 'en', 'fr', 'pt', 'ca', 'eu', 'gl', 'tr'] as const;
+const SUPPORTED_LANGUAGES = ['es', 'en', 'fr', 'pt', 'ca', 'eu', 'gl', 'tr', 'de'] as const;
 type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
 const resolveDeviceLanguage = (): SupportedLanguage => {
-  const deviceLang = Localization.getLocales()[0]?.languageCode || 'es';
+  const deviceLang = Localization.getLocales()[0]?.languageCode || 'en';
   if (SUPPORTED_LANGUAGES.includes(deviceLang as SupportedLanguage)) {
     return deviceLang as SupportedLanguage;
   }
-  return 'es';
+  return 'en';
 };
 
 const initI18n = async () => {
@@ -38,9 +39,10 @@ const initI18n = async () => {
       eu: { translation: eu },
       gl: { translation: gl },
       tr: { translation: tk },
+      de: { translation: de },
     },
     lng,
-    fallbackLng: 'es',
+    fallbackLng: 'en',
     interpolation: { escapeValue: false },
   });
 };
@@ -66,6 +68,7 @@ const LOCALE_MAP: Record<string, string> = {
   eu: 'eu-ES',
   gl: 'gl-ES',
   tr: 'tr-TR',
+  de: 'de-DE',
 };
 
 export const getLocale = (): string => LOCALE_MAP[i18n.language] || 'es-ES';
@@ -79,6 +82,7 @@ export const getCurrentLanguageLabel = (): string => {
     case 'eu': return 'Euskara';
     case 'gl': return 'Galego';
     case 'tr': return 'Türkçe';
+    case 'de': return 'Deutsch';
     case 'es': return 'Español';
     default: return 'Español';
   }
