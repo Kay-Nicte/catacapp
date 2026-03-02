@@ -117,7 +117,10 @@ export default function PremiumScreen() {
 
     if (!selectedPlan.pkg) {
       // No RevenueCat package available — offerings didn't load
-      Alert.alert(tr('common.error'), tr('premium.purchaseError'));
+      Alert.alert(
+        tr('common.error'),
+        `${tr('premium.purchaseError')}\n\n[offerings_empty] No se pudieron cargar los productos de Google Play. Packages: ${packages.length}`
+      );
       return;
     }
 

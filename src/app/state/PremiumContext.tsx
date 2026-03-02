@@ -185,8 +185,8 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
         if (offerings.current?.availablePackages) {
           setPackages(offerings.current.availablePackages);
         }
-      } catch {
-        // Offerings unavailable — UI will use fallback static prices
+      } catch (err: any) {
+        console.error('RevenueCat getOfferings error:', err?.code, err?.message || err);
       } finally {
         setPackagesLoading(false);
       }
