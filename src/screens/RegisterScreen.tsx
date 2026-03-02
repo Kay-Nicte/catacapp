@@ -19,6 +19,7 @@ import { useTheme } from '../theme/useTheme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../app/state/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import ScreenContainer from '../components/layout/ScreenContainer';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../app/navigation/AuthStack';
 import { Image } from 'react-native';
@@ -76,6 +77,7 @@ export default function RegisterScreen() {
       style={[styles.container, { backgroundColor: t.bg }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      <ScreenContainer>
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
@@ -220,6 +222,7 @@ export default function RegisterScreen() {
           </View>
         </View>
       </ScrollView>
+      </ScreenContainer>
     </KeyboardAvoidingView>
   );
 }

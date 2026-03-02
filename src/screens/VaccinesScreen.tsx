@@ -21,6 +21,7 @@ import { useAds } from "../app/state/AdsContext";
 import { useVaccines, Vaccine } from "../app/state/VaccinesContext";
 import { Icon } from "../components/ui/Icon";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
+import ScreenContainer from "../components/layout/ScreenContainer";
 import { shadows } from "../theme/tokens";
 import { formatDateLong, formatDateShort } from "../utils/format";
 
@@ -178,6 +179,7 @@ export default function VaccinesScreen() {
     <View
       style={[styles.screen, { backgroundColor: t.bg, paddingTop: insets.top + 6 }]}
     >
+      <ScreenContainer>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -311,6 +313,8 @@ export default function VaccinesScreen() {
           {tr('home.memorialHint')}
         </Text>
       )}
+
+      </ScreenContainer>
 
       {/* FAB */}
       {!isMemorialSelected && (
@@ -554,6 +558,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 20,
     maxHeight: "85%",
+    maxWidth: 500,
+    alignSelf: "center",
+    width: "100%",
   },
   modalHeader: {
     flexDirection: "row",

@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  Dimensions,
+  useWindowDimensions,
   FlatList,
   TouchableOpacity,
   NativeSyntheticEvent,
@@ -14,8 +14,6 @@ import { useTheme } from '../theme/useTheme';
 import { useOnboarding } from '../app/state/OnboardingContext';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../app/navigation/AuthStack';
-
-const { width } = Dimensions.get('window');
 
 interface Slide {
   id: string;
@@ -32,6 +30,7 @@ export default function OnboardingScreen({ navigation }: Props) {
   const t = useTheme();
   const { t: tr } = useTranslation();
   const { completeOnboarding } = useOnboarding();
+  const { width } = useWindowDimensions();
 
   const slides: Slide[] = [
     {

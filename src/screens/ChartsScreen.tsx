@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Dimensions,
+  useWindowDimensions,
   ActivityIndicator,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -17,10 +17,10 @@ import { useNavigation } from '@react-navigation/native';
 import { usePet } from '../app/state/PetContext';
 import { useRecords } from '../app/state/RecordsContext';
 import { usePremium } from '../app/state/PremiumContext';
+import ScreenContainer from '../components/layout/ScreenContainer';
 import i18n, { getLocale } from '../i18n';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CHART_WIDTH = SCREEN_WIDTH - 40;
+const MAX_CONTENT_WIDTH = 700;
 const CHART_HEIGHT = 200;
 
 interface DataPoint {
@@ -38,6 +38,7 @@ function SimpleBarChart({
   color: string;
   title: string;
   unit: string;
+  chartWidth?: number;
 }) {
   const t = useTheme();
   const maxValue = Math.max(...data.map((d) => d.value), 1);
@@ -81,11 +82,13 @@ function SimpleLineChart({
   color,
   title,
   unit,
+  chartWidth,
 }: {
   data: DataPoint[];
   color: string;
   title: string;
   unit: string;
+  chartWidth: number;
 }) {
   const t = useTheme();
   const { t: tr } = useTranslation();
@@ -118,7 +121,7 @@ function SimpleLineChart({
   const yRange = yMax - yMin;
 
   const LINE_CHART_HEIGHT = CHART_HEIGHT - 40;
-  const LINE_CHART_WIDTH = CHART_WIDTH - 32;
+  const LINE_CHART_WIDTH = chartWidth - 32;
   const pointSpacing = data.length > 1 ? LINE_CHART_WIDTH / (data.length - 1) : 0;
 
   const points = data.map((d, i) => ({
@@ -228,16 +231,18 @@ function StatCard({
   title,
   value,
   subtitle,
+  cardWidth,
 }: {
   icon: string;
   title: string;
   value: string;
   subtitle: string;
+  cardWidth?: number;
 }) {
   const t = useTheme();
 
   return (
-    <View style={[styles.statCard, { backgroundColor: t.card, borderColor: t.border }, shadows.sm]}>
+    <View style={[styles.statCard, { backgroundColor: t.card, borderColor: t.border, width: cardWidth }, shadows.sm]}>
       <View style={[styles.statIcon, { backgroundColor: t.accentSoft }]}>
         <Icon name={icon} size={22} color={t.accent} />
       </View>
@@ -256,6 +261,10 @@ export default function ChartsScreen() {
   const { selectedPet, selectedPetId } = usePet();
   const { records, isLoading } = useRecords();
   const { isPremium } = usePremium();
+  const { width: windowWidth } = useWindowDimensions();
+  const effectiveWidth = Math.min(windowWidth, MAX_CONTENT_WIDTH);
+  const chartWidth = effectiveWidth - 40;
+  const statCardWidth = (effectiveWidth - 52) / 2;
 
   // Filtrar registros de los últimos 7 días para la mascota seleccionada
   const last7Days = useMemo(() => {
@@ -392,6 +401,7 @@ export default function ChartsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: t.bg, paddingTop: insets.top + 6 }]}>
+      <ScreenContainer>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -436,23 +446,27 @@ export default function ChartsScreen() {
             title={tr('charts.food')}
             value={stats.totalFood.toString()}
             subtitle={tr('charts.avgPerDay', { avg: stats.avgFood.toFixed(1) })}
+            cardWidth={statCardWidth}
           />
           <StatCard
             icon="water"
             title={tr('charts.poop')}
             value={stats.totalPoop.toString()}
             subtitle={tr('charts.avgPerDay', { avg: stats.avgPoop.toFixed(1) })}
+            cardWidth={statCardWidth}
           />
           <StatCard
             icon="moon"
             title={tr('charts.sleep')}
             value={stats.totalSleep.toString()}
             subtitle={tr('charts.totalRecords')}
+            cardWidth={statCardWidth}
           />
           <StatCard
             icon="fitness"
             title={tr('charts.currentWeight')}
             value={stats.lastWeight || "\u2014"}
+            cardWidth={statCardWidth}
             subtitle={stats.lastWeight
               ? (stats.weightMin !== null && stats.weightMax !== null && stats.weightMin !== stats.weightMax
                 ? tr('charts.minMax', { min: stats.weightMin.toFixed(1), max: stats.weightMax.toFixed(1) })
@@ -492,12 +506,14 @@ export default function ChartsScreen() {
           data={weightData}
           color="#FF7043"
           title={tr('charts.weight')}
+          chartWidth={chartWidth}
           unit={stats.weightAvg !== null
             ? tr('charts.weightAvg', { avg: stats.weightAvg.toFixed(2), count: weightData.length })
             : tr('charts.weightUnit')}
         />
       </ScrollView>
       )}
+      </ScreenContainer>
     </View>
   );
 }
@@ -590,7 +606,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   statCard: {
-    width: (SCREEN_WIDTH - 52) / 2,
     borderRadius: 16,
     borderWidth: 1,
     padding: 14,

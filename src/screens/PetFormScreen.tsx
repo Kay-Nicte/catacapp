@@ -22,6 +22,7 @@ import PetAvatar from "../components/PetAvatar";
 import { premiumAvatars, premiumPetTypes } from "../assets/avatars";
 import { Icon } from "../components/ui/Icon";
 import { useRoute, useNavigation } from "@react-navigation/native";
+import ScreenContainer from "../components/layout/ScreenContainer";
 import type { RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../app/navigation/AppStack";
@@ -233,6 +234,7 @@ export default function PetFormScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: t.bg }]} edges={["bottom"]}>
+      <ScreenContainer>
       <ScrollView
         contentContainerStyle={[
           styles.content,
@@ -471,6 +473,8 @@ export default function PetFormScreen() {
           </View>
         )}
       </ScrollView>
+
+      </ScreenContainer>
 
       {/* Footer fijo (no se pisa con la barra de abajo) */}
       <View

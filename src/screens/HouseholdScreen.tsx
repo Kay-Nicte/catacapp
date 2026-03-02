@@ -19,6 +19,7 @@ import { useHousehold } from "../app/state/HouseholdContext";
 import { usePremium } from "../app/state/PremiumContext";
 import { Icon } from "../components/ui/Icon";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
+import ScreenContainer from "../components/layout/ScreenContainer";
 
 export default function HouseholdScreen() {
   const t = useTheme();
@@ -167,6 +168,7 @@ export default function HouseholdScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: t.bg }]}>
+      <ScreenContainer>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
@@ -420,6 +422,7 @@ export default function HouseholdScreen() {
           {tr("household.maxMembers")}
         </Text>
       </ScrollView>
+      </ScreenContainer>
     </View>
   );
 }

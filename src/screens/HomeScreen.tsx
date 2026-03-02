@@ -15,6 +15,7 @@ import { Icon } from "../components/ui/Icon";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
 import { useTranslation } from "react-i18next";
 import { useNavigation } from "@react-navigation/native";
+import ScreenContainer from "../components/layout/ScreenContainer";
 import type { CompositeNavigationProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
@@ -473,6 +474,7 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: t.bg, paddingTop: insets.top + 6 }]}>
+      <ScreenContainer>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -575,6 +577,8 @@ export default function HomeScreen() {
           }
         />
       )}
+
+      </ScreenContainer>
 
       {/* Modal de rutinas */}
       <RoutinesModal
@@ -884,6 +888,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 40,
     paddingTop: 12,
+    maxWidth: 500,
+    alignSelf: "center",
+    width: "100%",
   },
   modalHandle: {
     width: 40,

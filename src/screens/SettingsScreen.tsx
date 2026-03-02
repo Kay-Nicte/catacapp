@@ -35,6 +35,7 @@ import { deleteHouseholdData, addDocument } from "../services/firestore";
 import { useNavigation } from "@react-navigation/native";
 import { Icon } from "../components/ui/Icon";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
+import ScreenContainer from "../components/layout/ScreenContainer";
 
 interface SettingRowProps {
   icon: string;
@@ -511,6 +512,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: t.bg, paddingTop: insets.top + 6 }]}>
+      <ScreenContainer>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -819,6 +821,8 @@ export default function SettingsScreen() {
         </Text>
       </ScrollView>
 
+      </ScreenContainer>
+
       {/* Modal de Política de Privacidad */}
       <Modal
         visible={privacyVisible}
@@ -1083,6 +1087,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 20,
     maxHeight: "85%",
+    maxWidth: 500,
+    alignSelf: "center",
+    width: "100%",
   },
   privacyHeader: {
     flexDirection: "row",

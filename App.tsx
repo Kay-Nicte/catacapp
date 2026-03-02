@@ -1,6 +1,8 @@
 import './src/i18n';
 import React, { useEffect, useCallback } from "react";
 import { StatusBar, View, ActivityIndicator } from "react-native";
+import * as ScreenOrientation from 'expo-screen-orientation';
+import { getDeviceTypeAsync, DeviceType } from 'expo-device';
 import { NavigationContainer } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -108,6 +110,14 @@ function AppContent() {
 }
 
 export default function App() {
+  useEffect(() => {
+    getDeviceTypeAsync().then(type => {
+      if (type === DeviceType.PHONE) {
+        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+      }
+    });
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>

@@ -20,6 +20,7 @@ import {
   PREMIUM_FEATURES,
   PREMIUM_PRICES,
 } from '../app/state/PremiumContext';
+import ScreenContainer from '../components/layout/ScreenContainer';
 import { useTranslation } from 'react-i18next';
 import { getLocale } from '../i18n';
 
@@ -174,6 +175,7 @@ export default function PremiumScreen() {
   if (isPremium) {
     return (
       <View style={[styles.container, { backgroundColor: t.bg, paddingTop: insets.top }]}>
+        <ScreenContainer>
         <View style={styles.header}>
           <AnimatedPressable onPress={() => navigation.goBack()} hitSlop={10}>
             <Icon name="close" size={28} color={t.text} />
@@ -212,12 +214,14 @@ export default function PremiumScreen() {
             )}
           </View>
         </View>
+        </ScreenContainer>
       </View>
     );
   }
 
   return (
     <View style={[styles.container, { backgroundColor: t.bg }]}>
+      <ScreenContainer>
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
@@ -376,6 +380,7 @@ export default function PremiumScreen() {
           {tr('premium.terms')}
         </Text>
       </ScrollView>
+      </ScreenContainer>
     </View>
   );
 }

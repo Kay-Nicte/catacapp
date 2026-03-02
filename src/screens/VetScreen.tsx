@@ -17,6 +17,7 @@ import { usePet } from "../app/state/PetContext";
 import { useVet, VetVisit } from "../app/state/VetContext";
 import { useAds } from "../app/state/AdsContext";
 import EditVetVisitModal from "../components/EditVetVisitModal";
+import ScreenContainer from "../components/layout/ScreenContainer";
 import { formatTime } from "../utils/format";
 import i18n, { getLocale } from "../i18n";
 
@@ -188,6 +189,7 @@ export default function VetScreen() {
         { backgroundColor: t.bg, paddingTop: insets.top + 6 },
       ]}
     >
+      <ScreenContainer>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -263,6 +265,8 @@ export default function VetScreen() {
           {tr('common.memorial')}
         </Text>
       )}
+
+      </ScreenContainer>
 
       {/* FAB */}
       {!isMemorialSelected && (

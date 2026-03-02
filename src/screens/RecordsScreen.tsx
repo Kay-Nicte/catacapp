@@ -21,6 +21,7 @@ import { usePet } from "../app/state/PetContext";
 import { useRecords, RecordType, Record as PetRecord } from "../app/state/RecordsContext";
 import { useAds } from "../app/state/AdsContext";
 import EditRecordModal from "../components/EditRecordModal";
+import ScreenContainer from "../components/layout/ScreenContainer";
 import { formatDateFull } from "../utils/format";
 
 const typeLabels: RecordType[] = ["FOOD", "POOP", "SLEEP", "WEIGHT", "NOTE"];
@@ -179,6 +180,7 @@ export default function RecordsScreen() {
         { backgroundColor: t.bg, paddingTop: insets.top + 6 },
       ]}
     >
+      <ScreenContainer>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -350,6 +352,8 @@ export default function RecordsScreen() {
           {tr('home.memorialHint')}
         </Text>
       )}
+
+      </ScreenContainer>
 
       {/* Floating Add Button */}
       {!isMemorialSelected && (
@@ -624,6 +628,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     borderWidth: 1,
     padding: 20,
+    maxWidth: 500,
+    alignSelf: "center",
+    width: "100%",
   },
   modalHeader: {
     flexDirection: "row",

@@ -247,6 +247,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 20,
     maxHeight: "80%",
+    maxWidth: 500,
+    alignSelf: "center",
+    width: "100%",
   },
   modalHeader: {
     flexDirection: "row",
