@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   FlatList,
   Alert,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../components/ui/Icon";
@@ -28,10 +29,17 @@ export default function VetScreen() {
   const insets = useSafeAreaInsets();
 
   const { selectedPet, selectedPetId } = usePet();
-  const { getVisitsByPet, deleteVisit, updateVisit, addVisit, markAsCompleted, isLoading } = useVet();
+  const { getVisitsByPet, deleteVisit, updateVisit, addVisit, markAsCompleted, isLoading, refreshVet } = useVet();
   const { incrementActionCount } = useAds();
 
   const isMemorialSelected = selectedPet?.status === "memorial";
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    refreshVet();
+    setTimeout(() => setRefreshing(false), 1000);
+  }, [refreshVet]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVisit, setEditingVisit] = useState<VetVisit | null>(null);
@@ -139,8 +147,8 @@ export default function VetScreen() {
             </View>
 
             <View style={styles.visitInfo}>
-              <Text style={[styles.visitReason, { color: t.text }]}>{visit.reason}</Text>
-              <Text style={[styles.visitTime, { color: t.textMuted }]}>
+              <Text numberOfLines={1} style={[styles.visitReason, { color: t.text }]}>{visit.reason}</Text>
+              <Text numberOfLines={1} style={[styles.visitTime, { color: t.textMuted }]}>
                 {formatTime(visitDate)} · {visit.veterinarian}
               </Text>
             </View>
@@ -244,6 +252,7 @@ export default function VetScreen() {
         renderItem={({ item }) => renderVisit(item, false)}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         contentContainerStyle={styles.listContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.accent} colors={[t.accent]} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Icon name="medkit-outline" size={48} color={t.textMuted} />
@@ -396,8 +405,8 @@ const styles = StyleSheet.create({
   dateDay: { fontSize: 18, fontFamily: fonts.extraBold, lineHeight: 20 },
   dateMonth: { fontSize: 10, fontFamily: fonts.bold, letterSpacing: 0.5 },
   visitInfo: { flex: 1, gap: 2, paddingRight: 10 },
-  visitReason: { fontSize: 15, fontFamily: fonts.extraBold },
-  visitTime: { fontSize: 13, fontFamily: fonts.semiBold },
+  visitReason: { fontSize: 15, fontFamily: fonts.extraBold, flexShrink: 1 },
+  visitTime: { fontSize: 13, fontFamily: fonts.semiBold, flexShrink: 1 },
   completeBtn: {
     width: 34,
     height: 34,

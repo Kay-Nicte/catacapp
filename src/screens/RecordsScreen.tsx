@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,9 @@ import {
   Alert,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
+import { useToast } from "../components/ui/Toast";
 import { useTranslation } from 'react-i18next';
 import { Icon } from "../components/ui/Icon";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
@@ -25,7 +27,7 @@ import ScreenContainer from "../components/layout/ScreenContainer";
 import { formatDateFull } from "../utils/format";
 
 import { fonts } from '../theme/fonts';
-const typeLabels: RecordType[] = ["FOOD", "POOP", "SLEEP", "WEIGHT", "NOTE"];
+const typeLabels: RecordType[] = ["FOOD", "POOP", "SLEEP", "WEIGHT", "WALK", "NOTE"];
 
 function isSameDay(d1: Date, d2: Date): boolean {
   return (
@@ -41,10 +43,18 @@ export default function RecordsScreen() {
   const insets = useSafeAreaInsets();
 
   const { selectedPet, selectedPetId } = usePet();
-  const { getRecordsByDate, addRecord, deleteRecord, updateRecord, isLoading } = useRecords();
+  const { getRecordsByDate, addRecord, deleteRecord, updateRecord, isLoading, refreshRecords } = useRecords();
   const { incrementActionCount } = useAds();
+  const { showToast } = useToast();
 
   const isMemorialSelected = selectedPet?.status === "memorial";
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    refreshRecords();
+    setTimeout(() => setRefreshing(false), 1000);
+  }, [refreshRecords]);
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [modalOpen, setModalOpen] = useState(false);
@@ -86,7 +96,7 @@ export default function RecordsScreen() {
     const value = newValue.trim();
 
     if (!title || !value) {
-      Alert.alert(tr('records.missingData'), tr('records.missingDataMsg'));
+      showToast(tr('records.missingData'), tr('records.missingDataMsg'), 'error');
       return;
     }
 
@@ -111,8 +121,8 @@ export default function RecordsScreen() {
     if (isMemorialSelected) return;
 
     Alert.alert(
-      tr('records.deleteTitle'),
-      tr('records.deleteMsg'),
+      tr('records.deleteRecord'),
+      tr('records.deleteConfirm'),
       [
         { text: tr('common.cancel'), style: "cancel" },
         {
@@ -156,6 +166,7 @@ export default function RecordsScreen() {
       POOP: 0,
       SLEEP: 0,
       WEIGHT: 0,
+      WALK: 0,
       NOTE: 0,
     };
 
@@ -182,114 +193,116 @@ export default function RecordsScreen() {
       ]}
     >
       <ScreenContainer>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={[styles.logo, { backgroundColor: t.accent }]}>
-            <Icon name="paw" size={18} color="#fff" />
-          </View>
-          <View>
-            <Text style={[styles.headerTitle, { color: t.text }]}>{tr('records.title')}</Text>
-            {selectedPet?.name && (
-              <Text style={[styles.headerSubtitle, { color: t.textMuted }]}>
-                {selectedPet.name}
-              </Text>
-            )}
-          </View>
-        </View>
-      </View>
-
-      {/* Date Navigator */}
-      <View style={styles.dateNav}>
-        <AnimatedPressable
-          onPress={() => navigateDate("prev")}
-          style={[styles.navBtn, { backgroundColor: t.card, borderColor: t.border }]}
-          hitSlop={8}
-        >
-          <Icon name="chevron-back" size={20} color={t.text} />
-        </AnimatedPressable>
-
-        <AnimatedPressable
-          onPress={goToToday}
-          style={[styles.dateChip, { backgroundColor: t.card, borderColor: t.border }]}
-        >
-          <Icon name="calendar" size={16} color={t.textMuted} />
-          <Text style={[styles.dateText, { color: t.text }]}>
-            {isToday ? tr('records.today') : formatDateFull(selectedDate)}
-          </Text>
-        </AnimatedPressable>
-
-        <AnimatedPressable
-          onPress={() => navigateDate("next")}
-          style={[styles.navBtn, { backgroundColor: t.card, borderColor: t.border }]}
-          hitSlop={8}
-          disabled={isToday}
-        >
-          <Icon
-            name="chevron-forward"
-            size={20}
-            color={isToday ? t.border : t.text}
-          />
-        </AnimatedPressable>
-      </View>
-
-      {/* Type Filter */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterScroll}
-      >
-        <Pressable
-          onPress={() => setFilterType("ALL")}
-          style={[
-            styles.filterChip,
-            {
-              backgroundColor: filterType === "ALL" ? t.accentSoft : t.card,
-              borderColor: filterType === "ALL" ? "transparent" : t.border,
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.filterText,
-              { color: filterType === "ALL" ? t.accent : t.textMuted },
-            ]}
-          >
-            {tr('records.all')} ({recordsByType.ALL})
-          </Text>
-        </Pressable>
-
-        {typeLabels.map(type => (
-          <Pressable
-            key={type}
-            onPress={() => setFilterType(type)}
-            style={[
-              styles.filterChip,
-              {
-                backgroundColor: filterType === type ? t.accentSoft : t.card,
-                borderColor: filterType === type ? "transparent" : t.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                { color: filterType === type ? t.accent : t.textMuted },
-              ]}
-            >
-              {tr('common.recordTypeSingular.' + type)} ({recordsByType[type]})
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      {/* Records List */}
-      <View style={{ flex: 1 }}>
         <FlatList
           data={filteredRecords}
           keyExtractor={item => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, filteredRecords.length === 0 ? { flexGrow: 1 } : { flexGrow: 0 }]}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.accent} colors={[t.accent]} />}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ListHeaderComponent={
+            <>
+              {/* Header */}
+              <View style={styles.header}>
+                <View style={styles.headerLeft}>
+                  <View style={[styles.logo, { backgroundColor: t.accent }]}>
+                    <Icon name="paw" size={18} color="#fff" />
+                  </View>
+                  <View>
+                    <Text style={[styles.headerTitle, { color: t.text }]}>{tr('records.title')}</Text>
+                    {selectedPet?.name && (
+                      <Text style={[styles.headerSubtitle, { color: t.textMuted }]}>
+                        {selectedPet.name}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+
+              {/* Date Navigator */}
+              <View style={styles.dateNav}>
+                <AnimatedPressable
+                  onPress={() => navigateDate("prev")}
+                  style={[styles.navBtn, { backgroundColor: t.card, borderColor: t.border }]}
+                  hitSlop={8}
+                >
+                  <Icon name="chevron-back" size={20} color={t.text} />
+                </AnimatedPressable>
+
+                <AnimatedPressable
+                  onPress={goToToday}
+                  style={[styles.dateChip, { backgroundColor: t.card, borderColor: t.border }]}
+                >
+                  <Icon name="calendar" size={16} color={t.textMuted} />
+                  <Text style={[styles.dateText, { color: t.text }]}>
+                    {isToday ? tr('records.today') : formatDateFull(selectedDate)}
+                  </Text>
+                </AnimatedPressable>
+
+                <AnimatedPressable
+                  onPress={() => navigateDate("next")}
+                  style={[styles.navBtn, { backgroundColor: t.card, borderColor: t.border }]}
+                  hitSlop={8}
+                  disabled={isToday}
+                >
+                  <Icon
+                    name="chevron-forward"
+                    size={20}
+                    color={isToday ? t.border : t.text}
+                  />
+                </AnimatedPressable>
+              </View>
+
+              {/* Type Filter */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filterScroll}
+              >
+                <Pressable
+                  onPress={() => setFilterType("ALL")}
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor: filterType === "ALL" ? t.accentSoft : t.card,
+                      borderColor: filterType === "ALL" ? "transparent" : t.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.filterText,
+                      { color: filterType === "ALL" ? t.accent : t.textMuted },
+                    ]}
+                  >
+                    {tr('records.all')} ({recordsByType.ALL})
+                  </Text>
+                </Pressable>
+
+                {typeLabels.map(type => (
+                  <Pressable
+                    key={type}
+                    onPress={() => setFilterType(type)}
+                    style={[
+                      styles.filterChip,
+                      {
+                        backgroundColor: filterType === type ? t.accentSoft : t.card,
+                        borderColor: filterType === type ? "transparent" : t.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.filterText,
+                        { color: filterType === type ? t.accent : t.textMuted },
+                      ]}
+                    >
+                      {tr('common.recordTypeSingular.' + type)} ({recordsByType[type]})
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </>
+          }
           renderItem={({ item }) => {
             const itemDate = new Date(item.timestamp);
             const displayTime = item.customTime || `${String(itemDate.getHours()).padStart(2, "0")}:${String(
@@ -323,7 +336,7 @@ export default function RecordsScreen() {
                       </View>
                     )}
                   </View>
-                  <Text style={[styles.recordMeta, { color: t.textMuted }]}>
+                  <Text numberOfLines={1} style={[styles.recordMeta, { color: t.textMuted }]}>
                     {displayTime} · {item.value}
                   </Text>
                 </View>
@@ -346,7 +359,6 @@ export default function RecordsScreen() {
             </View>
           }
         />
-      </View>
 
       {isMemorialSelected && (
         <Text style={[styles.memorialHint, { color: t.textMuted }]}>
@@ -385,7 +397,7 @@ export default function RecordsScreen() {
               <Text style={[styles.modalTitle, { color: t.text }]}>{tr('records.addRecord')}</Text>
               {selectedPet?.name && (
                 <Text style={[styles.modalSubtitle, { color: t.textMuted }]}>
-                  {tr('records.forPet', { name: selectedPet.name })}
+                  {tr('common.for')} {selectedPet.name}
                 </Text>
               )}
             </View>
@@ -394,7 +406,7 @@ export default function RecordsScreen() {
             </AnimatedPressable>
           </View>
 
-          <Text style={[styles.label, { color: t.textMuted }]}>{tr('records.typeLabel')}</Text>
+          <Text style={[styles.label, { color: t.textMuted }]}>{tr('records.type')}</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -436,7 +448,7 @@ export default function RecordsScreen() {
             style={[styles.input, { color: t.text, borderColor: t.border, backgroundColor: t.bg }]}
           />
 
-          <Text style={[styles.label, { color: t.textMuted }]}>{tr('records.valueLabel')}</Text>
+          <Text style={[styles.label, { color: t.textMuted }]}>{tr('records.value')}</Text>
           <TextInput
             value={newValue}
             onChangeText={setNewValue}
@@ -584,19 +596,18 @@ const styles = StyleSheet.create({
     gap: 8,
     flexWrap: "wrap",
   },
-  recordTitle: { fontSize: 15, fontFamily: fonts.extraBold },
+  recordTitle: { fontSize: 15, fontFamily: fonts.extraBold, flexShrink: 1 },
   sourceBadge: {
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
   },
   sourceBadgeText: { fontSize: 10, fontFamily: fonts.extraBold, letterSpacing: 0.5 },
-  recordMeta: { fontSize: 13, fontFamily: fonts.semiBold },
+  recordMeta: { fontSize: 13, fontFamily: fonts.semiBold, flexShrink: 1 },
   separator: { height: 10 },
 
   emptyContainer: {
     alignItems: "center",
-    justifyContent: "center",
     paddingVertical: 60,
     gap: 12,
   },

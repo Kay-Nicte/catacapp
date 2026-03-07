@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Text, Pressable, FlatList, StyleSheet, ActivityIndicator, Modal, Switch } from "react-native";
+import { View, Text, Pressable, FlatList, StyleSheet, ActivityIndicator, Modal, Switch, RefreshControl } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/useTheme";
@@ -44,7 +44,9 @@ function getIcon(t: RecordType): string {
     case "POOP": return "water";
     case "SLEEP": return "moon";
     case "WEIGHT": return "fitness";
+    case "WALK": return "walk";
     case "NOTE": return "document-text";
+    default: return "ellipse";
   }
 }
 
@@ -73,7 +75,7 @@ export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
 
   const { user } = useAuth();
-  const { pets, selectedPetId, setSelectedPetId, selectedPet, defaultPetId, isLoading: isPetsLoading } = usePet();
+  const { pets, selectedPetId, setSelectedPetId, selectedPet, defaultPetId, isLoading: isPetsLoading, refreshPets } = usePet();
   const { getRecordsByDate, getRecordsByPet, getTodayRoutines, confirmRoutine, skipRoutine, isLoading: isRecordsLoading } = useRecords();
 
   const [routinesModalVisible, setRoutinesModalVisible] = useState(false);
@@ -89,7 +91,14 @@ export default function HomeScreen() {
     defaultValue?: string;
   } | null>(null);
 
+  const [refreshing, setRefreshing] = useState(false);
   const isLoading = isPetsLoading || isRecordsLoading;
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    refreshPets();
+    setTimeout(() => setRefreshing(false), 1000);
+  }, [refreshPets]);
+
   const isMemorialSelected = selectedPet?.status === "memorial";
 
   // Check if there are memorial or archived pets (for showing filter chips)
@@ -159,6 +168,7 @@ export default function HomeScreen() {
     const foodRecords = todayRecords.filter(r => r.type === "FOOD");
     const poopRecords = todayRecords.filter(r => r.type === "POOP");
     const sleepRecords = todayRecords.filter(r => r.type === "SLEEP");
+    const walkRecords = todayRecords.filter(r => r.type === "WALK");
 
     const lastPoopTimestamp = poopRecords.length > 0 ? poopRecords[0].timestamp : null;
     const lastPoop = lastPoopTimestamp ? new Date(lastPoopTimestamp) : null;
@@ -205,6 +215,13 @@ export default function HomeScreen() {
         name: tr('common.recordType.WEIGHT'),
         value: lastWeight || tr('home.noRecords'),
         type: "WEIGHT",
+      },
+      {
+        id: "s5",
+        icon: getIcon("WALK"),
+        name: tr('common.recordType.WALK'),
+        value: walkRecords.length > 0 ? tr('home.registered', { count: walkRecords.length }) : tr('home.noRecords'),
+        type: "WALK",
       },
     ];
   }, [todayRecords, getRecordsByPet, selectedPetId, tr]);
@@ -390,10 +407,10 @@ export default function HomeScreen() {
               <View key={routine.id}>
                 <View style={styles.routineRow}>
                   <View style={styles.routineLeft}>
-                    <Text style={[styles.routineName, { color: t.text }]}>
+                    <Text numberOfLines={1} style={[styles.routineName, { color: t.text }]}>
                       {tr('common.recordType.' + routine.type)} · {routine.title}
                     </Text>
-                    <Text style={[styles.routineTime, { color: t.textMuted }]}>
+                    <Text numberOfLines={1} style={[styles.routineTime, { color: t.textMuted }]}>
                       {routine.time}
                       {routine.defaultValue && ` · ${routine.defaultValue}`}
                     </Text>
@@ -528,6 +545,7 @@ export default function HomeScreen() {
           style={styles.container}
           contentContainerStyle={styles.contentContainer}
           ListHeaderComponent={ListHeaderComponent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.accent} colors={[t.accent]} />}
           data={visibleSummary}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
@@ -546,7 +564,7 @@ export default function HomeScreen() {
                 <View style={[styles.iconCircle, { backgroundColor: t.accentSoft }]}>
                   <Icon name={item.icon} size={20} color={t.accent} />
                 </View>
-                <Text style={[styles.summaryName, { color: t.text }]}>{item.name}</Text>
+                <Text numberOfLines={1} style={[styles.summaryName, { color: t.text }]}>{item.name}</Text>
               </View>
 
               <View style={styles.summaryRowRight}>
@@ -789,8 +807,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   routineLeft: { flex: 1, paddingRight: 10, gap: 2 },
-  routineName: { fontSize: 14, fontFamily: fonts.extraBold },
-  routineTime: { fontSize: 12, fontFamily: fonts.semiBold },
+  routineName: { fontSize: 14, fontFamily: fonts.extraBold, flexShrink: 1 },
+  routineTime: { fontSize: 12, fontFamily: fonts.semiBold, flexShrink: 1 },
   routineActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   iconPill: {
     width: 34,
@@ -823,11 +841,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  summaryName: { fontSize: 16, fontFamily: fonts.semiBold },
+  summaryName: { fontSize: 16, fontFamily: fonts.semiBold, flexShrink: 1 },
   summaryRowRight: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    flexShrink: 0,
   },
   summaryValue: { fontSize: 14, fontFamily: fonts.medium },
 

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { useHousehold } from './HouseholdContext';
 import { useNotifications } from './NotificationContext';
@@ -38,6 +38,7 @@ interface VetContextType {
   getVisitsByPet: (petId: string) => { past: VetVisit[]; upcoming: VetVisit[] };
   markAsCompleted: (id: string) => void;
   deleteByPet: (petId: string) => Promise<void>;
+  refreshVet: () => void;
 }
 
 const VetContext = createContext<VetContextType | undefined>(undefined);
@@ -49,6 +50,7 @@ export function VetProvider({ children }: { children: ReactNode }) {
   const { pets } = usePet();
   const [visits, setVisits] = useState<VetVisit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [subVersion, setSubVersion] = useState(0);
 
   // Subscribe to Firestore vet visits
   useEffect(() => {
@@ -86,7 +88,7 @@ export function VetProvider({ children }: { children: ReactNode }) {
     );
 
     return unsub;
-  }, [user?.id, householdId, householdLoading]);
+  }, [user?.id, householdId, householdLoading, subVersion]);
 
   const addVisit = async (visit: Omit<VetVisit, 'id'>) => {
     if (!householdId || !user) return;
@@ -156,6 +158,10 @@ export function VetProvider({ children }: { children: ReactNode }) {
     updateDocument(householdId, 'vetVisits', id, { type: 'PAST' });
   };
 
+  const refreshVet = useCallback(() => {
+    setSubVersion((v) => v + 1);
+  }, []);
+
   const deleteByPet = async (petId: string) => {
     if (!householdId || !user) return;
 
@@ -183,6 +189,7 @@ export function VetProvider({ children }: { children: ReactNode }) {
         getVisitsByPet,
         markAsCompleted,
         deleteByPet,
+        refreshVet,
       }}
     >
       {children}

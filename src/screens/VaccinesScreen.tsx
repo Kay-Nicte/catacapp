@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,9 @@ import {
   Alert,
   Platform,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
+import { useToast } from "../components/ui/Toast";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useTranslation } from 'react-i18next';
 import { useTheme } from "../theme/useTheme";
@@ -46,9 +48,17 @@ export default function VaccinesScreen() {
   const insets = useSafeAreaInsets();
   const { selectedPet, selectedPetId } = usePet();
   const { incrementActionCount } = useAds();
-  const { getVaccinesByPet, addVaccine, updateVaccine, deleteVaccine, isLoading } = useVaccines();
+  const { getVaccinesByPet, addVaccine, updateVaccine, deleteVaccine, isLoading, refreshVaccines } = useVaccines();
+  const { showToast } = useToast();
 
   const isMemorialSelected = selectedPet?.status === "memorial";
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    refreshVaccines();
+    setTimeout(() => setRefreshing(false), 1000);
+  }, [refreshVaccines]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVaccine, setEditingVaccine] = useState<Vaccine | null>(null);
@@ -116,7 +126,7 @@ export default function VaccinesScreen() {
 
   const handleDelete = (id: string) => {
     if (isMemorialSelected) return;
-    Alert.alert(tr('vaccines.deleteTitle'), tr('vaccines.deleteMsg'), [
+    Alert.alert(tr('vaccines.deleteVaccine'), tr('vaccines.deleteConfirm'), [
       { text: tr('common.cancel'), style: "cancel" },
       {
         text: tr('common.delete'),
@@ -130,7 +140,7 @@ export default function VaccinesScreen() {
     const name = formName.trim();
 
     if (!name) {
-      Alert.alert(tr('vaccines.missingData'), tr('vaccines.missingDataMsg'));
+      showToast(tr('vaccines.missingData'), tr('vaccines.missingDataMsg'), 'error');
       return;
     }
 
@@ -139,10 +149,7 @@ export default function VaccinesScreen() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       if (formNextDose < today) {
-        Alert.alert(
-          tr('vaccines.invalidDate'),
-          tr('vaccines.invalidDateMsg')
-        );
+        showToast(tr('vaccines.invalidDate'), tr('vaccines.invalidDateMsg'), 'error');
         return;
       }
     }
@@ -233,7 +240,7 @@ export default function VaccinesScreen() {
                 <View style={styles.alertContent}>
                   <Text style={[styles.alertTitle, { color: t.text }]}>{vaccine.name}</Text>
                   <Text style={[styles.alertDate, { color: pastDue ? t.danger : t.textMuted }]}>
-                    {pastDue ? tr('vaccines.expired') : tr('vaccines.upcoming')}
+                    {pastDue ? tr('vaccines.pastDue') : tr('vaccines.upcoming')}
                     {formatDateLong(vaccine.nextDose!)}
                   </Text>
                 </View>
@@ -254,6 +261,7 @@ export default function VaccinesScreen() {
         data={petVaccines}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.accent} colors={[t.accent]} />}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         renderItem={({ item }) => (
           <AnimatedPressable
@@ -275,7 +283,7 @@ export default function VaccinesScreen() {
             </View>
 
             <View style={styles.vaccineInfo}>
-              <Text style={[styles.vaccineName, { color: t.text }]}>{item.name}</Text>
+              <Text numberOfLines={1} style={[styles.vaccineName, { color: t.text }]}>{item.name}</Text>
               <Text style={[styles.vaccineDate, { color: t.textMuted }]}>
                 {tr('vaccines.applied')}{formatDateLong(item.date)}
               </Text>
@@ -345,7 +353,7 @@ export default function VaccinesScreen() {
               </Text>
               {selectedPet?.name && (
                 <Text style={[styles.modalSubtitle, { color: t.textMuted }]}>
-                  {tr('vaccines.forPet', { name: selectedPet.name })}
+                  {tr('common.for')} {selectedPet.name}
                 </Text>
               )}
             </View>
@@ -494,7 +502,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   alertContent: { flex: 1 },
-  alertTitle: { fontSize: 15, fontFamily: fonts.bold },
+  alertTitle: { fontSize: 15, fontFamily: fonts.bold, flexShrink: 1 },
   alertDate: { fontSize: 13, fontFamily: fonts.semiBold, marginTop: 2 },
 
   listContent: { paddingBottom: 80 },
@@ -516,7 +524,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   vaccineInfo: { flex: 1, gap: 2 },
-  vaccineName: { fontSize: 16, fontFamily: fonts.extraBold },
+  vaccineName: { fontSize: 16, fontFamily: fonts.extraBold, flexShrink: 1 },
   vaccineDate: { fontSize: 13, fontFamily: fonts.semiBold },
   vaccineNext: { fontSize: 12, fontFamily: fonts.semiBold },
   vaccineNotes: { fontSize: 12, fontFamily: fonts.medium, fontStyle: "italic", marginTop: 2 },

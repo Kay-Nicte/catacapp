@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-import { AppState } from 'react-native';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
+import { AppState, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
 import { useHousehold } from './HouseholdContext';
@@ -12,7 +12,7 @@ import {
 } from '../../services/firestore';
 import type { FirestoreRecord, FirestoreRoutine } from '../../types/firestore';
 
-export type RecordType = 'FOOD' | 'POOP' | 'SLEEP' | 'WEIGHT' | 'NOTE';
+export type RecordType = 'FOOD' | 'POOP' | 'SLEEP' | 'WEIGHT' | 'NOTE' | 'WALK';
 
 export interface Record {
   id: string;
@@ -58,6 +58,7 @@ interface RecordsContextType {
   deleteRoutine: (id: string) => void;
   updateRoutine: (id: string, updates: Partial<Routine>) => void;
   deleteByPet: (petId: string) => void;
+  refreshRecords: () => void;
 }
 
 const RecordsContext = createContext<RecordsContextType | undefined>(undefined);
@@ -71,6 +72,7 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [dailyRoutineStatus, setDailyRoutineStatus] = useState<Map<string, 'PENDING' | 'DONE' | 'SKIPPED'>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
+  const [subVersion, setSubVersion] = useState(0);
 
   const statusKey = `${ROUTINE_STATUS_KEY}_${user?.id}`;
   const lastDateRef = useRef<string>(new Date().toDateString());
@@ -169,7 +171,7 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
       unsubRecords();
       unsubRoutines();
     };
-  }, [user?.id, householdId, householdLoading]);
+  }, [user?.id, householdId, householdLoading, subVersion]);
 
   // Persist routine status locally
   useEffect(() => {
@@ -179,15 +181,29 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
     }
   }, [dailyRoutineStatus, isLoading, user]);
 
-  const addRecord = (record: Omit<Record, 'id' | 'timestamp'>) => {
-    if (!householdId) return;
+  const addRecord = async (record: Omit<Record, 'id' | 'timestamp'>) => {
+    if (!householdId) {
+      Alert.alert('Error', 'No se pudo guardar. Reinicia la app e inténtalo de nuevo.');
+      return;
+    }
 
     const data: FirestoreRecord = {
-      ...record,
+      petId: record.petId,
+      type: record.type,
+      title: record.title,
+      value: record.value,
+      source: record.source,
       timestamp: new Date().toISOString(),
     };
+    if (record.routineId !== undefined) data.routineId = record.routineId;
+    if (record.customTime !== undefined) data.customTime = record.customTime;
 
-    addDocument(householdId, 'records', data);
+    try {
+      await addDocument(householdId, 'records', data);
+    } catch (error) {
+      console.error('Error adding record:', error);
+      Alert.alert('Error', 'No se pudo guardar el registro.');
+    }
   };
 
   const deleteRecord = (id: string) => {
@@ -263,20 +279,28 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
     setDailyRoutineStatus(prev => new Map(prev).set(statusKeyStr, 'SKIPPED'));
   };
 
-  const addRoutine = (routine: Omit<Routine, 'id'>) => {
-    if (!householdId) return;
+  const addRoutine = async (routine: Omit<Routine, 'id'>) => {
+    if (!householdId) {
+      Alert.alert('Error', 'No se pudo guardar. Reinicia la app e inténtalo de nuevo.');
+      return;
+    }
 
     const data: FirestoreRoutine = {
       petId: routine.petId,
       type: routine.type,
       title: routine.title,
       time: routine.time,
-      defaultValue: routine.defaultValue,
       active: routine.active,
-      days: routine.days,
     };
+    if (routine.defaultValue !== undefined) data.defaultValue = routine.defaultValue;
+    if (routine.days !== undefined) data.days = routine.days;
 
-    addDocument(householdId, 'routines', data);
+    try {
+      await addDocument(householdId, 'routines', data);
+    } catch (error) {
+      console.error('Error adding routine:', error);
+      Alert.alert('Error', 'No se pudo guardar la rutina.');
+    }
   };
 
   const deleteRoutine = (id: string) => {
@@ -289,6 +313,10 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
     const { id: _id, ...data } = updates as any;
     updateDocument(householdId, 'routines', id, data);
   };
+
+  const refreshRecords = useCallback(() => {
+    setSubVersion((v) => v + 1);
+  }, []);
 
   const deleteByPet = (petId: string) => {
     if (!householdId) return;
@@ -314,6 +342,7 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
         deleteRoutine,
         updateRoutine,
         deleteByPet,
+        refreshRecords,
       }}
     >
       {children}

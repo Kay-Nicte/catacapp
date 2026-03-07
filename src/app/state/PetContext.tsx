@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useMemo, useState, useEffect, useCallback, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "./AuthContext";
 import { useHousehold } from "./HouseholdContext";
@@ -51,6 +51,7 @@ type PetContextValue = {
   clearDefaultPetId: () => void;
 
   deletePet: (id: string) => void;
+  refreshPets: () => void;
 };
 
 const PetContext = createContext<PetContextValue | null>(null);
@@ -69,6 +70,7 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
   const [selectedPetId, setSelectedPetId] = useState("");
   const [defaultPetId, setDefaultPetIdState] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [subVersion, setSubVersion] = useState(0);
 
   const selectedKey = `${SELECTED_PET_KEY}_${user?.id}`;
   const defaultKey = `${DEFAULT_PET_KEY}_${user?.id}`;
@@ -132,7 +134,7 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
     );
 
     return unsub;
-  }, [user?.id, householdId, householdLoading]);
+  }, [user?.id, householdId, householdLoading, subVersion]);
 
   // Persist selected pet locally
   useEffect(() => {
@@ -230,6 +232,10 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
     deleteDocument(householdId, 'pets', id);
   }, [householdId]);
 
+  const refreshPets = useCallback(() => {
+    setSubVersion((v) => v + 1);
+  }, []);
+
   const value = useMemo(
     () => ({
       pets,
@@ -247,8 +253,9 @@ export function PetProvider({ children }: { children: React.ReactNode }) {
       setDefaultPetId,
       clearDefaultPetId,
       deletePet,
+      refreshPets,
     }),
-    [pets, selectedPetId, selectedPet, isLoading, addPet, updatePet, markPetDeceased, reactivatePet, archivePet, unarchivePet, defaultPetId, setDefaultPetId, clearDefaultPetId, deletePet]
+    [pets, selectedPetId, selectedPet, isLoading, addPet, updatePet, markPetDeceased, reactivatePet, archivePet, unarchivePet, defaultPetId, setDefaultPetId, clearDefaultPetId, deletePet, refreshPets]
   );
 
   return <PetContext.Provider value={value}>{children}</PetContext.Provider>;

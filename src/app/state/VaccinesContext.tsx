@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
+import { Alert } from 'react-native';
 import { useAuth } from './AuthContext';
 import { useHousehold } from './HouseholdContext';
 import { useNotifications } from './NotificationContext';
@@ -36,6 +37,7 @@ interface VaccinesContextType {
   deleteVaccine: (id: string) => Promise<void>;
   getVaccinesByPet: (petId: string) => Vaccine[];
   deleteByPet: (petId: string) => Promise<void>;
+  refreshVaccines: () => void;
 }
 
 const VaccinesContext = createContext<VaccinesContextType | undefined>(undefined);
@@ -47,6 +49,7 @@ export function VaccinesProvider({ children }: { children: ReactNode }) {
   const { pets } = usePet();
   const [vaccines, setVaccines] = useState<Vaccine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [subVersion, setSubVersion] = useState(0);
   const notifMapLoaded = useRef(false);
 
   // Subscribe to Firestore vaccines
@@ -84,33 +87,41 @@ export function VaccinesProvider({ children }: { children: ReactNode }) {
     );
 
     return unsub;
-  }, [user?.id, householdId, householdLoading]);
+  }, [user?.id, householdId, householdLoading, subVersion]);
 
   const addVaccine = async (vaccine: Omit<Vaccine, 'id' | 'notificationId'>) => {
-    if (!householdId || !user) return;
+    if (!householdId || !user) {
+      Alert.alert('Error', 'No se pudo guardar. Reinicia la app e inténtalo de nuevo.');
+      return;
+    }
 
-    const data: FirestoreVaccine = {
-      petId: vaccine.petId,
-      name: vaccine.name,
-      date: vaccine.date,
-      nextDose: vaccine.nextDose,
-      notes: vaccine.notes,
-    };
+    try {
+      const data: FirestoreVaccine = {
+        petId: vaccine.petId,
+        name: vaccine.name,
+        date: vaccine.date,
+      };
+      if (vaccine.nextDose !== undefined) data.nextDose = vaccine.nextDose;
+      if (vaccine.notes !== undefined) data.notes = vaccine.notes;
 
-    const docId = await addDocument(householdId, 'vaccines', data);
+      const docId = await addDocument(householdId, 'vaccines', data);
 
-    // Schedule local notification
-    if (vaccine.nextDose) {
-      const pet = pets.find(p => p.id === vaccine.petId);
-      const petName = pet?.name || i18n.t('common.yourPet');
-      const notificationId = await scheduleVaccineReminder(
-        petName,
-        vaccine.name,
-        new Date(vaccine.nextDose)
-      );
-      if (notificationId) {
-        await saveNotifId(user.id, docId, notificationId);
+      // Schedule local notification
+      if (vaccine.nextDose) {
+        const pet = pets.find(p => p.id === vaccine.petId);
+        const petName = pet?.name || i18n.t('common.yourPet');
+        const notificationId = await scheduleVaccineReminder(
+          petName,
+          vaccine.name,
+          new Date(vaccine.nextDose)
+        );
+        if (notificationId) {
+          await saveNotifId(user.id, docId, notificationId);
+        }
       }
+    } catch (error) {
+      console.error('Error adding vaccine:', error);
+      Alert.alert('Error', 'No se pudo guardar la vacuna.');
     }
   };
 
@@ -167,6 +178,10 @@ export function VaccinesProvider({ children }: { children: ReactNode }) {
     return vaccines.filter(v => v.petId === petId);
   };
 
+  const refreshVaccines = useCallback(() => {
+    setSubVersion((v) => v + 1);
+  }, []);
+
   const deleteByPet = async (petId: string) => {
     if (!householdId || !user) return;
 
@@ -193,6 +208,7 @@ export function VaccinesProvider({ children }: { children: ReactNode }) {
         deleteVaccine,
         getVaccinesByPet,
         deleteByPet,
+        refreshVaccines,
       }}
     >
       {children}

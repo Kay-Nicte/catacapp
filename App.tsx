@@ -1,5 +1,6 @@
 import './src/i18n';
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
+import * as Updates from 'expo-updates';
 import { StatusBar, View, ActivityIndicator, Text, TextInput } from "react-native";
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { getDeviceTypeAsync, DeviceType } from 'expo-device';
@@ -9,13 +10,13 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as SplashScreen from "expo-splash-screen";
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-  Poppins_700Bold,
-  Poppins_800ExtraBold,
-  Poppins_900Black,
-} from "@expo-google-fonts/poppins";
+  Montserrat_400Regular,
+  Montserrat_500Medium,
+  Montserrat_600SemiBold,
+  Montserrat_700Bold,
+  Montserrat_800ExtraBold,
+  Montserrat_900Black,
+} from "@expo-google-fonts/montserrat";
 import { fonts } from "./src/theme/fonts";
 import { ThemeProvider } from "./src/app/state/ThemeContext";
 import { useTheme } from "./src/theme/useTheme";
@@ -31,6 +32,8 @@ import { VaccinesProvider } from "./src/app/state/VaccinesContext";
 import { NotificationProvider } from "./src/app/state/NotificationContext";
 import { AdsProvider } from "./src/app/state/AdsContext";
 import { HouseholdProvider } from "./src/app/state/HouseholdContext";
+import { ToastProvider } from "./src/components/ui/Toast";
+import FullscreenSplash from "./src/components/FullscreenSplash";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -40,28 +43,28 @@ function Navigation() {
   const { isLoading: isOnboardingLoading } = useOnboarding();
 
   const [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
-    Poppins_700Bold,
-    Poppins_800ExtraBold,
-    Poppins_900Black,
+    Montserrat_400Regular,
+    Montserrat_500Medium,
+    Montserrat_600SemiBold,
+    Montserrat_700Bold,
+    Montserrat_800ExtraBold,
+    Montserrat_900Black,
   });
 
-  // Apply Poppins as default font for all Text and TextInput
+  // Apply Montserrat as default font for all Text and TextInput
   if (fontsLoaded) {
     const defaultTextStyle = { fontFamily: fonts.regular };
     const origTextRender = (Text as any).render;
-    if (origTextRender && !(Text as any).__poppinsPatched) {
-      (Text as any).__poppinsPatched = true;
+    if (origTextRender && !(Text as any).__fontPatched) {
+      (Text as any).__fontPatched = true;
       (Text as any).render = function (props: any, ref: any) {
         const { style, ...rest } = props;
         return origTextRender.call(this, { ...rest, style: [defaultTextStyle, style] }, ref);
       };
     }
     const origInputRender = (TextInput as any).render;
-    if (origInputRender && !(TextInput as any).__poppinsPatched) {
-      (TextInput as any).__poppinsPatched = true;
+    if (origInputRender && !(TextInput as any).__fontPatched) {
+      (TextInput as any).__fontPatched = true;
       (TextInput as any).render = function (props: any, ref: any) {
         const { style, ...rest } = props;
         return origInputRender.call(this, { ...rest, style: [defaultTextStyle, style] }, ref);
@@ -70,6 +73,7 @@ function Navigation() {
   }
 
   const isLoading = isAuthLoading || isOnboardingLoading || !fontsLoaded;
+  const [showSplash, setShowSplash] = useState(true);
 
   const onLayoutRootView = useCallback(async () => {
     if (!isLoading) {
@@ -83,7 +87,7 @@ function Navigation() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: t.bg }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: '#0E0F10' }}>
         <ActivityIndicator size="large" color={t.accent} />
       </View>
     );
@@ -112,12 +116,25 @@ function Navigation() {
       ) : (
         <AuthStack />
       )}
+      {showSplash && <FullscreenSplash onFinish={() => setShowSplash(false)} />}
     </NavigationContainer>
   );
 }
 
 function AppContent() {
   const t = useTheme();
+
+  useEffect(() => {
+    if (__DEV__) return;
+    Updates.checkForUpdateAsync()
+      .then(({ isAvailable }) => {
+        if (isAvailable) return Updates.fetchUpdateAsync();
+      })
+      .then((result) => {
+        if (result?.isNew) Updates.reloadAsync();
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <AuthProvider>
@@ -135,7 +152,7 @@ export default function App() {
   useEffect(() => {
     getDeviceTypeAsync().then(type => {
       if (type === DeviceType.PHONE) {
-        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.DEFAULT);
       }
     });
   }, []);
@@ -144,7 +161,9 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
         <SafeAreaProvider>
-          <AppContent />
+          <ToastProvider>
+            <AppContent />
+          </ToastProvider>
         </SafeAreaProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
