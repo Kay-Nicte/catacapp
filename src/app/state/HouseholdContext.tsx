@@ -9,6 +9,9 @@ import {
   createInviteCode,
   joinHousehold as joinHouseholdService,
   mergePetsToHousehold,
+  mergeSelectedPetsToHousehold,
+  removeUnselectedPets,
+  getPetsForHousehold,
   leaveHousehold as leaveHouseholdService,
   removeMember as removeMemberService,
   getMemberEmails,
@@ -27,7 +30,8 @@ interface HouseholdContextType {
   isOwner: boolean;
   loading: boolean;
   generateInviteCode: () => Promise<string>;
-  joinHousehold: (code: string, mergePets: boolean) => Promise<{ success: boolean; error?: string }>;
+  joinHousehold: (code: string, mergePets: boolean, selectedPetIds?: string[]) => Promise<{ success: boolean; error?: string }>;
+  getPetsForHousehold: (householdId: string) => Promise<{ id: string; name: string; type: string; avatarKey: string }[]>;
   leaveHousehold: () => Promise<void>;
   removeMember: (userId: string) => Promise<void>;
 }
@@ -66,6 +70,15 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         console.error('Error initializing household:', error);
+        // Retry once after a short delay
+        try {
+          const { householdId: hId } = await migrateToFirestore(user.id, user.email);
+          if (!cancelled) {
+            setHouseholdId(hId);
+          }
+        } catch (retryError) {
+          console.error('Retry failed:', retryError);
+        }
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -106,20 +119,46 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   }, [user, householdId]);
 
   const joinHouseholdHandler = useCallback(
-    async (code: string, mergePets: boolean): Promise<{ success: boolean; error?: string }> => {
+    async (code: string, mergePets: boolean, selectedPetIds?: string[]): Promise<{ success: boolean; error?: string }> => {
       if (!user || !householdId) return { success: false, error: 'noUser' };
 
       try {
         const oldHouseholdId = householdId;
-        const result = await joinHouseholdService(user.id, code, mergePets);
+        console.log('[HouseholdContext] joinHousehold start, oldHouseholdId:', oldHouseholdId);
+        const result = await joinHouseholdService(user.id, code, mergePets || !!selectedPetIds);
+        console.log('[HouseholdContext] joinHousehold result:', JSON.stringify(result));
 
         if (!result.success) {
           return { success: false, error: result.error };
         }
 
-        // If merge requested, copy pets from old household to new
-        if (mergePets && result.newHouseholdId) {
-          await mergePetsToHousehold(oldHouseholdId, result.newHouseholdId);
+        if (result.newHouseholdId && oldHouseholdId) {
+          if (selectedPetIds) {
+            // Selective merge: copy only selected pets from old household
+            try {
+              console.log('[HouseholdContext] Selective merge, selectedPetIds:', selectedPetIds);
+              await mergeSelectedPetsToHousehold(oldHouseholdId, result.newHouseholdId, selectedPetIds.filter(id => !id.startsWith('target:')));
+              // Remove unselected pets from target household
+              const targetPets = await getPetsForHousehold(result.newHouseholdId);
+              const selectedTargetIds = selectedPetIds.filter(id => id.startsWith('target:')).map(id => id.replace('target:', ''));
+              const targetPetsToRemove = targetPets
+                .filter(p => !selectedTargetIds.includes(p.id) && !selectedPetIds.includes(p.id))
+                .map(p => p.id);
+              if (targetPetsToRemove.length > 0) {
+                await removeUnselectedPets(result.newHouseholdId, targetPetsToRemove);
+              }
+            } catch (mergeError) {
+              console.error('[HouseholdContext] Selective merge failed (non-fatal):', mergeError);
+            }
+          } else if (mergePets) {
+            // Full merge: copy all pets
+            try {
+              console.log('[HouseholdContext] Merging all pets from', oldHouseholdId, 'to', result.newHouseholdId);
+              await mergePetsToHousehold(oldHouseholdId, result.newHouseholdId);
+            } catch (mergeError) {
+              console.error('[HouseholdContext] Merge failed (non-fatal):', mergeError);
+            }
+          }
         }
 
         // Update local state
@@ -129,7 +168,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
 
         return { success: true };
       } catch (error) {
-        console.error('Error joining household:', error);
+        console.error('[HouseholdContext] Error joining household:', error);
         return { success: false, error: 'joinError' };
       }
     },
@@ -172,6 +211,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
         loading,
         generateInviteCode: generateInvite,
         joinHousehold: joinHouseholdHandler,
+        getPetsForHousehold,
         leaveHousehold: leaveHouseholdHandler,
         removeMember: removeMemberHandler,
       }}

@@ -11,6 +11,7 @@ import {
   ScrollView,
   Platform,
 } from "react-native";
+import { useToast } from "./ui/Toast";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -28,13 +29,14 @@ interface RoutinesModalProps {
   petId: string;
 }
 
-const typeLabels: RecordType[] = ["FOOD", "POOP", "SLEEP", "WEIGHT", "NOTE"];
+const typeLabels: RecordType[] = ["FOOD", "POOP", "SLEEP", "WEIGHT", "WALK", "NOTE"];
 
 export default function RoutinesModal({ visible, onClose, petId }: RoutinesModalProps) {
   const t = useTheme();
   const { t: tr } = useTranslation();
   const insets = useSafeAreaInsets();
   const { routines, addRoutine, deleteRoutine, updateRoutine } = useRecords();
+  const { showToast } = useToast();
 
   const petRoutines = routines.filter(r => r.petId === petId);
 
@@ -71,7 +73,7 @@ export default function RoutinesModal({ visible, onClose, petId }: RoutinesModal
     const value = formValue.trim();
 
     if (!title) {
-      Alert.alert(tr('editRecord.missingData'), tr('editRecord.missingDataMsg'));
+      showToast(tr('editRecord.missingData'), tr('editRecord.missingDataMsg'), 'error');
       return;
     }
 

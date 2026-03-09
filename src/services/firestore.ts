@@ -136,24 +136,29 @@ export async function joinHousehold(
 ): Promise<{ success: boolean; newHouseholdId?: string; error?: string }> {
   const upperCode = code.toUpperCase();
 
+  console.log('[joinHousehold] Starting with code:', upperCode, 'userId:', userId, 'merge:', mergePets);
+
   return db.runTransaction(async (tx) => {
     // 1. Validate invite
     const inviteRef = invitesCol().doc(upperCode);
     const inviteSnap = await tx.get(inviteRef);
-    if (!inviteSnap.data()) {
+    console.log('[joinHousehold] Invite exists:', inviteSnap.exists);
+    if (!inviteSnap.exists) {
       return { success: false, error: 'invalidCode' };
     }
     const invite = inviteSnap.data() as FirestoreInvite;
 
-    if (invite.used) return { success: false, error: 'codeUsed' };
-    if (invite.expiresAt.toDate() < new Date()) return { success: false, error: 'codeExpired' };
+    if (invite.used) { console.log('[joinHousehold] Code already used'); return { success: false, error: 'codeUsed' }; }
+    if (invite.expiresAt.toDate() < new Date()) { console.log('[joinHousehold] Code expired'); return { success: false, error: 'codeExpired' }; }
 
     // 2. Check target household has room
     const targetHouseholdRef = householdsCol().doc(invite.householdId);
     const targetSnap = await tx.get(targetHouseholdRef);
-    if (!targetSnap.data()) return { success: false, error: 'householdNotFound' };
+    console.log('[joinHousehold] Target household exists:', targetSnap.exists, 'id:', invite.householdId);
+    if (!targetSnap.exists) return { success: false, error: 'householdNotFound' };
 
     const targetHousehold = targetSnap.data() as FirestoreHousehold;
+    console.log('[joinHousehold] Target members:', targetHousehold.memberIds.length);
     if (targetHousehold.memberIds.length >= 2) {
       return { success: false, error: 'maxMembers' };
     }
@@ -161,7 +166,8 @@ export async function joinHousehold(
     // 3. Get current user doc
     const userRef = usersCol().doc(userId);
     const userSnap = await tx.get(userRef);
-    if (!userSnap.data()) return { success: false, error: 'userNotFound' };
+    console.log('[joinHousehold] User exists:', userSnap.exists);
+    if (!userSnap.exists) return { success: false, error: 'userNotFound' };
 
     const userData = userSnap.data() as FirestoreUser;
     const oldHouseholdId = userData.householdId;
@@ -177,12 +183,11 @@ export async function joinHousehold(
     // 6. Update user's householdId
     tx.update(userRef, { householdId: invite.householdId });
 
+    console.log('[joinHousehold] Transaction success, newHouseholdId:', invite.householdId);
     return {
       success: true,
       newHouseholdId: invite.householdId,
-      oldHouseholdId,
-      mergePets,
-    } as any;
+    };
   });
 }
 
@@ -197,7 +202,7 @@ export async function mergePetsToHousehold(
     const snapshot = await householdSubCol(oldHouseholdId, col).get();
     if (snapshot.empty) continue;
 
-    const batch = db.batch();
+    let batch = db.batch();
     let count = 0;
 
     for (const doc of snapshot.docs) {
@@ -208,6 +213,7 @@ export async function mergePetsToHousehold(
       // Firestore batch limit is 500
       if (count >= 450) {
         await batch.commit();
+        batch = db.batch();
         count = 0;
       }
     }
@@ -216,6 +222,84 @@ export async function mergePetsToHousehold(
       await batch.commit();
     }
   }
+}
+
+export async function getPetsForHousehold(
+  householdId: string
+): Promise<{ id: string; name: string; type: string; avatarKey: string }[]> {
+  const snap = await householdSubCol(householdId, 'pets').get();
+  return snap.docs.map((doc) => {
+    const data = doc.data();
+    return { id: doc.id, name: data.name, type: data.type, avatarKey: data.avatarKey };
+  });
+}
+
+export async function mergeSelectedPetsToHousehold(
+  oldHouseholdId: string,
+  newHouseholdId: string,
+  selectedPetIds: string[]
+): Promise<void> {
+  if (selectedPetIds.length === 0) return;
+
+  // 1. Copy selected pets
+  const petsSnap = await householdSubCol(oldHouseholdId, 'pets').get();
+  let batch = db.batch();
+  let count = 0;
+
+  for (const doc of petsSnap.docs) {
+    if (!selectedPetIds.includes(doc.id)) continue;
+    batch.set(householdSubCol(newHouseholdId, 'pets').doc(doc.id), doc.data());
+    count++;
+    if (count >= 450) { await batch.commit(); batch = db.batch(); count = 0; }
+  }
+
+  // 2. Copy related data (records, routines, vaccines, vetVisits) for selected pets
+  const relatedCollections = ['records', 'routines', 'vaccines', 'vetVisits'];
+  for (const col of relatedCollections) {
+    const snap = await householdSubCol(oldHouseholdId, col).get();
+    for (const doc of snap.docs) {
+      const data = doc.data();
+      if (data.petId && selectedPetIds.includes(data.petId)) {
+        batch.set(householdSubCol(newHouseholdId, col).doc(doc.id), data);
+        count++;
+        if (count >= 450) { await batch.commit(); batch = db.batch(); count = 0; }
+      }
+    }
+  }
+
+  if (count > 0) await batch.commit();
+}
+
+export async function removeUnselectedPets(
+  householdId: string,
+  petIdsToRemove: string[]
+): Promise<void> {
+  if (petIdsToRemove.length === 0) return;
+
+  let batch = db.batch();
+  let count = 0;
+
+  // Delete unselected pets
+  for (const petId of petIdsToRemove) {
+    batch.delete(householdSubCol(householdId, 'pets').doc(petId));
+    count++;
+  }
+
+  // Delete related data for unselected pets
+  const relatedCollections = ['records', 'routines', 'vaccines', 'vetVisits'];
+  for (const col of relatedCollections) {
+    const snap = await householdSubCol(householdId, col).get();
+    for (const doc of snap.docs) {
+      const data = doc.data();
+      if (data.petId && petIdsToRemove.includes(data.petId)) {
+        batch.delete(doc.ref);
+        count++;
+        if (count >= 450) { await batch.commit(); batch = db.batch(); count = 0; }
+      }
+    }
+  }
+
+  if (count > 0) await batch.commit();
 }
 
 export async function deleteHouseholdData(householdId: string): Promise<void> {

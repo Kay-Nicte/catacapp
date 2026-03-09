@@ -43,6 +43,16 @@ import {
   BarChart3,
   FlaskConical,
   Tv,
+  Languages,
+  AlarmClock,
+  RefreshCw,
+  CloudUpload,
+  CloudDownload,
+  Link,
+  LogIn,
+  Info,
+  Square,
+  CheckSquare,
   LucideIcon,
 } from "lucide-react-native";
 
@@ -207,6 +217,46 @@ const iconMap: Record<string, LucideIcon> = {
   // TV
   "tv": Tv,
   "tv-outline": Tv,
+
+  // Walk
+  "walk": PawPrint,
+  "walk-outline": PawPrint,
+
+  // Language
+  "language": Languages,
+  "language-outline": Languages,
+
+  // Alarm
+  "alarm": AlarmClock,
+  "alarm-outline": AlarmClock,
+
+  // Refresh
+  "refresh": RefreshCw,
+  "refresh-outline": RefreshCw,
+
+  // Cloud
+  "cloud-upload": CloudUpload,
+  "cloud-upload-outline": CloudUpload,
+  "cloud-download": CloudDownload,
+  "cloud-download-outline": CloudDownload,
+
+  // Link
+  "link": Link,
+  "link-outline": Link,
+
+  // Enter/Login
+  "enter": LogIn,
+  "enter-outline": LogIn,
+
+  // Info
+  "information-circle": Info,
+  "information-circle-outline": Info,
+
+  // Checkbox
+  "checkbox": CheckSquare,
+  "checkbox-outline": CheckSquare,
+  "square-outline": Square,
+  "square": Square,
 };
 
 interface IconProps {

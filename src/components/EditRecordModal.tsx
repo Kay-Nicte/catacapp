@@ -7,16 +7,16 @@ import {
   StyleSheet,
   TextInput,
   ScrollView,
-  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../theme/useTheme";
+import { useToast } from "./ui/Toast";
 import { Icon } from "./ui/Icon";
 import { RecordType } from "../app/state/RecordsContext";
 
 import { fonts } from '../theme/fonts';
-const typeLabels: RecordType[] = ["FOOD", "POOP", "SLEEP", "WEIGHT", "NOTE"];
+const typeLabels: RecordType[] = ["FOOD", "POOP", "SLEEP", "WEIGHT", "WALK", "NOTE"];
 
 interface EditRecordModalProps {
   visible: boolean;
@@ -47,6 +47,7 @@ export default function EditRecordModal({
   const t = useTheme();
   const { t: tr } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { showToast } = useToast();
 
   const [type, setType] = useState<RecordType>(initialData?.type || "FOOD");
   const [title, setTitle] = useState(initialData?.title || "");
@@ -68,14 +69,14 @@ export default function EditRecordModal({
     const trimmedValue = value.trim();
 
     if (!trimmedTitle || !trimmedTime || !trimmedValue) {
-      Alert.alert(tr('editRecord.missingData'), tr('editRecord.missingDataMsg'));
+      showToast(tr('editRecord.missingData'), tr('editRecord.missingDataMsg'), 'error');
       return;
     }
 
     // Validar formato de hora (HH:mm)
     const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
     if (!timeRegex.test(trimmedTime)) {
-      Alert.alert(tr('editRecord.invalidTime'), tr('editRecord.invalidTimeMsg'));
+      showToast(tr('editRecord.invalidTime'), tr('editRecord.invalidTimeMsg'), 'error');
       return;
     }
 

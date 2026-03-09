@@ -8,9 +8,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
+import { useToast } from '../components/ui/Toast';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 import { Icon } from '../components/ui/Icon';
@@ -36,6 +36,7 @@ export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { login, loginWithGoogle } = useAuth();
 
+  const { showToast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -50,7 +51,7 @@ export default function LoginScreen() {
     setIsLoading(false);
 
     if (!result.success) {
-      Alert.alert(tr('common.error'), result.error || tr('auth.loginFailed'));
+      showToast(tr('common.error'), result.error || tr('auth.loginFailed'), 'error');
     }
   };
 
@@ -62,7 +63,7 @@ export default function LoginScreen() {
     setIsGoogleLoading(false);
 
     if (!result.success && result.error !== i18n.t('auth.errors.googleCancelled')) {
-      Alert.alert(tr('common.error'), result.error || tr('auth.googleFailed'));
+      showToast(tr('common.error'), result.error || tr('auth.googleFailed'), 'error');
     }
   };
 

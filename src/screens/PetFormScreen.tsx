@@ -9,6 +9,7 @@ import {
   ScrollView,
   Platform,
 } from "react-native";
+import { useToast } from "../components/ui/Toast";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from 'react-i18next';
@@ -33,6 +34,7 @@ export default function PetFormScreen() {
   const t = useTheme();
   const { t: tr } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { showToast } = useToast();
 
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "PetForm">>();
@@ -122,7 +124,7 @@ export default function PetFormScreen() {
 
     const clean = name.trim();
     if (!clean) {
-      Alert.alert(tr('pets.missingName'), tr('pets.missingNameMsg'));
+      showToast(tr('pets.missingName'), tr('pets.missingNameMsg'), 'error');
       return;
     }
 

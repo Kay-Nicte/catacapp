@@ -8,9 +8,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
+import { useToast } from '../components/ui/Toast';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 import { Icon } from '../components/ui/Icon';
@@ -36,6 +36,7 @@ export default function RegisterScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { register, loginWithGoogle } = useAuth();
 
+  const { showToast } = useToast();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -48,7 +49,7 @@ export default function RegisterScreen() {
     if (isLoading) return;
 
     if (password !== confirmPassword) {
-      Alert.alert(tr('common.error'), tr('auth.passwordMismatch'));
+      showToast(tr('common.error'), tr('auth.passwordMismatch'), 'error');
       return;
     }
 
@@ -57,7 +58,7 @@ export default function RegisterScreen() {
     setIsLoading(false);
 
     if (!result.success) {
-      Alert.alert(tr('common.error'), result.error || tr('auth.registerFailed'));
+      showToast(tr('common.error'), result.error || tr('auth.registerFailed'), 'error');
     }
   };
 
@@ -69,7 +70,7 @@ export default function RegisterScreen() {
     setIsGoogleLoading(false);
 
     if (!result.success && result.error !== i18n.t('auth.errors.googleCancelled')) {
-      Alert.alert(tr('common.error'), result.error || tr('auth.googleFailed'));
+      showToast(tr('common.error'), result.error || tr('auth.googleFailed'), 'error');
     }
   };
 

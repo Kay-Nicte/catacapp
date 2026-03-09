@@ -11,6 +11,7 @@ import {
   Linking,
   Modal,
 } from "react-native";
+import { useToast } from "../components/ui/Toast";
 import * as Notifications from "expo-notifications";
 import { File as FSFile, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
@@ -53,14 +54,13 @@ function SettingRow({ icon, title, subtitle, onPress, rightElement, danger, lock
   const { t: tr } = useTranslation();
 
   return (
-    <AnimatedPressable
+    <Pressable
       onPress={onPress}
       disabled={!onPress && !rightElement}
       style={[
         styles.settingRow,
         { backgroundColor: t.card },
       ]}
-      haptic={onPress ? "light" : "none"}
     >
       <View style={[styles.settingIcon, { backgroundColor: danger ? "rgba(214,69,69,0.15)" : t.accentSoft }]}>
         <Icon name={icon} size={20} color={danger ? t.danger : t.accent} />
@@ -68,7 +68,7 @@ function SettingRow({ icon, title, subtitle, onPress, rightElement, danger, lock
 
       <View style={styles.settingContent}>
         <View style={styles.titleRow}>
-          <Text style={[styles.settingTitle, { color: danger ? t.danger : t.text }]}>{title}</Text>
+          <Text numberOfLines={1} style={[styles.settingTitle, { color: danger ? t.danger : t.text }]}>{title}</Text>
           {locked && (
             <View style={[styles.premiumBadge, { backgroundColor: t.accentSoft }]}>
               <Icon name="diamond" size={12} color={t.accent} />
@@ -82,7 +82,7 @@ function SettingRow({ icon, title, subtitle, onPress, rightElement, danger, lock
       </View>
 
       {rightElement || (onPress && <Icon name="chevron-forward" size={20} color={t.textMuted} />)}
-    </AnimatedPressable>
+    </Pressable>
   );
 }
 
@@ -91,6 +91,7 @@ export default function SettingsScreen() {
   const { t: tr } = useTranslation();
   const { themeMode, setThemeMode } = useThemeMode();
   const insets = useSafeAreaInsets();
+  const { showToast } = useToast();
   const navigation = useNavigation();
   const { user, logout } = useAuth();
   const { isPremium, cancelSubscription, status: premiumStatus } = usePremium();
@@ -115,10 +116,7 @@ export default function SettingsScreen() {
     if (value && !hasPermission) {
       const granted = await requestPermission();
       if (!granted) {
-        Alert.alert(
-          tr('settings.permissionsNeeded'),
-          tr('settings.permissionsMsg')
-        );
+        showToast(tr('settings.permissionsNeeded'), tr('settings.permissionsMsg'), 'info');
         return;
       }
     }
@@ -260,7 +258,7 @@ export default function SettingsScreen() {
       file.write(csv);
       await Sharing.shareAsync(file.uri, { mimeType: "text/csv", dialogTitle: tr('settings.exportDialogTitle') });
     } catch (error) {
-      Alert.alert(tr('common.error'), tr('settings.exportError'));
+      showToast(tr('common.error'), tr('settings.exportError'), 'error');
     }
   };
 
@@ -300,7 +298,7 @@ export default function SettingsScreen() {
       file.write(json);
       await Sharing.shareAsync(file.uri, { mimeType: "application/json", dialogTitle: tr('settings.backupDialogTitle') });
     } catch (error) {
-      Alert.alert(tr('common.error'), tr('settings.backupError'));
+      showToast(tr('common.error'), tr('settings.backupError'), 'error');
     }
   };
 
@@ -335,7 +333,7 @@ export default function SettingsScreen() {
 
       // Validar estructura del backup
       if (!backup.version || !backup.data || !backup.data.pets) {
-        Alert.alert(tr('common.error'), tr('settings.restoreInvalid'));
+        showToast(tr('common.error'), tr('settings.restoreInvalid'), 'error');
         return;
       }
 
@@ -371,7 +369,7 @@ export default function SettingsScreen() {
         await addDocument(householdId, 'vaccines', data);
       }
 
-      Alert.alert(
+      showToast(
         tr('settings.restoreSuccess'),
         tr('settings.restoreSuccessMsg', {
           pets: bPets?.length || 0,
@@ -379,11 +377,11 @@ export default function SettingsScreen() {
           visits: bVisits?.length || 0,
           vaccines: bVaccines?.length || 0,
         }),
-        [{ text: tr('common.ok') }]
+        'success'
       );
     } catch (error) {
       console.error("Error restoring backup:", error);
-      Alert.alert(tr('common.error'), tr('settings.restoreError'));
+      showToast(tr('common.error'), tr('settings.restoreError'), 'error');
     }
   };
 
@@ -415,14 +413,10 @@ export default function SettingsScreen() {
               await deleteHouseholdData(householdId);
 
               // Aviso de éxito
-              Alert.alert(
-                tr('settings.clearSuccess'),
-                tr('settings.clearSuccessMsg'),
-                [{ text: tr('common.ok') }]
-              );
+              showToast(tr('settings.clearSuccess'), tr('settings.clearSuccessMsg'), 'success');
             } catch (error) {
               console.error("Error clearing data:", error);
-              Alert.alert(tr('common.error'), tr('settings.clearError'));
+              showToast(tr('common.error'), tr('settings.clearError'), 'error');
             }
           },
         },
@@ -461,9 +455,9 @@ export default function SettingsScreen() {
           onPress: async () => {
             const result = await cancelSubscription();
             if (result.success) {
-              Alert.alert(tr('settings.subscriptionCancelled'), tr('settings.subscriptionCancelledMsg'));
+              showToast(tr('settings.subscriptionCancelled'), tr('settings.subscriptionCancelledMsg'), 'info');
             } else {
-              Alert.alert(tr('common.error'), result.error || tr('auth.errors.cancelError'));
+              showToast(tr('common.error'), result.error || tr('auth.errors.cancelError'), 'error');
             }
           },
         },
@@ -472,7 +466,7 @@ export default function SettingsScreen() {
   };
 
   const handleContactSupport = () => {
-    Linking.openURL(`mailto:soporte@catacapp.com?subject=${encodeURIComponent(tr('settings.supportSubject'))}`);
+    Linking.openURL(`mailto:ixabeljusto@gmail.com?subject=${encodeURIComponent(tr('settings.supportSubject'))}`);
   };
 
   const handlePrivacyPolicy = () => {
@@ -484,7 +478,7 @@ export default function SettingsScreen() {
     if (!hasPermission) {
       const granted = await requestPermission();
       if (!granted) {
-        Alert.alert(tr('settings.permissionsNeeded'), tr('settings.permissionsTestMsg'));
+        showToast(tr('settings.permissionsNeeded'), tr('settings.permissionsTestMsg'), 'info');
         return;
       }
     }
@@ -498,17 +492,17 @@ export default function SettingsScreen() {
       trigger: null, // null = inmediata
     });
 
-    Alert.alert(tr('settings.testSent'), tr('settings.testSentMsg'));
+    showToast(tr('settings.testSent'), tr('settings.testSentMsg'), 'success');
   };
 
   // TEST: Mostrar intersticial de prueba
   const handleTestInterstitial = () => {
     if (!showAds) {
-      Alert.alert(tr('settings.premiumActive'), tr('settings.premiumAdsMsg'));
+      showToast(tr('settings.premiumActive'), tr('settings.premiumAdsMsg'), 'info');
       return;
     }
     showInterstitial();
-    Alert.alert(tr('settings.testInterstitial'), tr('settings.interstitialMsg'));
+    showToast(tr('settings.testInterstitial'), tr('settings.interstitialMsg'), 'info');
   };
 
   return (
@@ -537,8 +531,8 @@ export default function SettingsScreen() {
               <Icon name="person" size={24} color={t.accent} />
             </View>
             <View style={styles.accountInfo}>
-              <Text style={[styles.accountName, { color: t.text }]}>{user?.name || tr('settings.user')}</Text>
-              <Text style={[styles.accountEmail, { color: t.textMuted }]}>{user?.email}</Text>
+              <Text numberOfLines={1} style={[styles.accountName, { color: t.text }]}>{user?.name || tr('settings.user')}</Text>
+              <Text numberOfLines={1} style={[styles.accountEmail, { color: t.textMuted }]}>{user?.email}</Text>
             </View>
             {isPremium && (
               <View style={[styles.premiumChip, { backgroundColor: t.accent }]}>
@@ -559,8 +553,8 @@ export default function SettingsScreen() {
               <View style={styles.premiumBannerContent}>
                 <Icon name="diamond" size={28} color="#fff" />
                 <View style={styles.premiumBannerText}>
-                  <Text style={styles.premiumBannerTitle}>{tr('settings.goPremium')}</Text>
-                  <Text style={styles.premiumBannerSubtitle}>
+                  <Text numberOfLines={1} style={styles.premiumBannerTitle}>{tr('settings.goPremium')}</Text>
+                  <Text numberOfLines={1} style={styles.premiumBannerSubtitle}>
                     {tr('settings.goPremiumDesc')}
                   </Text>
                 </View>
@@ -579,14 +573,6 @@ export default function SettingsScreen() {
                        premiumStatus.plan === 'yearly' ? tr('settings.planYearly') :
                        premiumStatus.plan === 'monthly' ? tr('settings.planMonthly') : tr('settings.planActive')}
               onPress={handleManageSubscription}
-            />
-            <View style={[styles.rowDivider, { backgroundColor: t.border }]} />
-            <SettingRow
-              icon="close-circle"
-              title={tr('settings.cancelSubscription')}
-              subtitle={tr('settings.cancelSubscriptionDesc')}
-              onPress={handleCancelSubscription}
-              danger
             />
           </View>
         )}
@@ -953,8 +939,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   accountInfo: { flex: 1, gap: 2 },
-  accountName: { fontSize: 17, fontFamily: fonts.bold },
-  accountEmail: { fontSize: 13, fontFamily: fonts.medium },
+  accountName: { fontSize: 17, fontFamily: fonts.bold, flexShrink: 1 },
+  accountEmail: { fontSize: 13, fontFamily: fonts.medium, flexShrink: 1 },
   premiumChip: {
     flexDirection: "row",
     alignItems: "center",
@@ -982,8 +968,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
+    flex: 1,
   },
-  premiumBannerText: { gap: 2 },
+  premiumBannerText: { gap: 2, flexShrink: 1 },
   premiumBannerTitle: {
     color: "#fff",
     fontSize: 18,
@@ -1031,7 +1018,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  settingTitle: { fontSize: 15, fontFamily: fonts.bold },
+  settingTitle: { fontSize: 15, fontFamily: fonts.bold, flexShrink: 1 },
   settingSubtitle: { fontSize: 12, fontFamily: fonts.medium },
   premiumBadge: {
     flexDirection: "row",

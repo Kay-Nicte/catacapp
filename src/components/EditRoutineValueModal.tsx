@@ -18,7 +18,7 @@ import { Icon } from "./ui/Icon";
 import { formatTime } from "../utils/format";
 
 import { fonts } from '../theme/fonts';
-const typeLabels: RecordType[] = ["FOOD", "POOP", "SLEEP", "WEIGHT", "NOTE"];
+const typeLabels: RecordType[] = ["FOOD", "POOP", "SLEEP", "WEIGHT", "WALK", "NOTE"];
 
 interface EditRecordModalProps {
   visible: boolean;

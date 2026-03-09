@@ -5,9 +5,9 @@ import {
   TextInput,
   StyleSheet,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
+import { useToast } from '../components/ui/Toast';
 import { PACKAGE_TYPE, PurchasesPackage } from 'react-native-purchases';
 import { Icon } from '../components/ui/Icon';
 import { AnimatedPressable } from '../components/ui/AnimatedPressable';
@@ -57,6 +57,7 @@ export default function PremiumScreen() {
   const navigation = useNavigation();
   const { isPremium, status, subscribe, redeemCode, restore, packages } = usePremium();
 
+  const { showToast } = useToast();
   const [selectedPlanKey, setSelectedPlanKey] = useState<PlanKey>('yearly');
   const [isLoading, setIsLoading] = useState(false);
   const [redeemInput, setRedeemInput] = useState('');
@@ -119,9 +120,10 @@ export default function PremiumScreen() {
 
     if (!selectedPlan.pkg) {
       // No RevenueCat package available — offerings didn't load
-      Alert.alert(
+      showToast(
         tr('common.error'),
-        `${tr('premium.purchaseError')}\n\n[offerings_empty] No se pudieron cargar los productos de Google Play. Packages: ${packages.length}`
+        `${tr('premium.purchaseError')}\n\n[offerings_empty] No se pudieron cargar los productos de Google Play. Packages: ${packages.length}`,
+        'error'
       );
       return;
     }
@@ -133,13 +135,10 @@ export default function PremiumScreen() {
     if (result.error === 'cancelled') return;
 
     if (result.success) {
-      Alert.alert(
-        tr('premium.welcomeTitle'),
-        tr('premium.welcomeMsg'),
-        [{ text: tr('premium.great'), onPress: () => navigation.goBack() }]
-      );
+      showToast(tr('premium.welcomeTitle'), tr('premium.welcomeMsg'), 'success');
+      navigation.goBack();
     } else {
-      Alert.alert(tr('common.error'), result.error || tr('premium.purchaseError'));
+      showToast(tr('common.error'), result.error || tr('premium.purchaseError'), 'error');
     }
   };
 
@@ -151,13 +150,10 @@ export default function PremiumScreen() {
     setIsRedeeming(false);
 
     if (result.success) {
-      Alert.alert(
-        tr('premium.welcomeTitle'),
-        tr('premium.welcomeMsg'),
-        [{ text: tr('premium.great'), onPress: () => navigation.goBack() }]
-      );
+      showToast(tr('premium.welcomeTitle'), tr('premium.welcomeMsg'), 'success');
+      navigation.goBack();
     } else {
-      Alert.alert(tr('common.error'), result.error || tr('premium.invalidCode'));
+      showToast(tr('common.error'), result.error || tr('premium.invalidCode'), 'error');
     }
   };
 
@@ -167,9 +163,9 @@ export default function PremiumScreen() {
     setIsLoading(false);
 
     if (result.success) {
-      Alert.alert(tr('premium.restored'), tr('premium.restoredMsg'));
+      showToast(tr('premium.restored'), tr('premium.restoredMsg'), 'success');
     } else {
-      Alert.alert(tr('premium.noPurchases'), result.error || tr('premium.noPurchasesMsg'));
+      showToast(tr('premium.noPurchases'), result.error || tr('premium.noPurchasesMsg'), 'info');
     }
   };
 

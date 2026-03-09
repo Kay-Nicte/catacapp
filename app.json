@@ -3,7 +3,7 @@
     "name": "catacapp",
     "slug": "catacapp",
     "scheme": "catacapp",
-    "version": "1.3.2",
+    "version": "1.3.4",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -17,11 +17,12 @@
       "supportsTablet": true
     },
     "android": {
-      "versionCode": 8,
+      "versionCode": 16,
       "package": "com.catacapp.app",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
+        "monochromeImage": "./assets/monochrome-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -29,6 +30,10 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "notification": {
+      "icon": "./assets/notification-icon.png",
+      "color": "#D4621A"
     },
     "plugins": [
       "expo-web-browser",
@@ -51,8 +56,15 @@
           }
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      "expo-updates"
     ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/45cf0c4d-9325-40c3-b3e4-638adddf08a4"
+    },
     "extra": {
       "eas": {
         "projectId": "45cf0c4d-9325-40c3-b3e4-638adddf08a4"

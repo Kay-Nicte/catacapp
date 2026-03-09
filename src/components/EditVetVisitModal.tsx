@@ -8,9 +8,9 @@ import {
   TextInput,
   ScrollView,
   Platform,
-  Alert,
 } from "react-native";
 import { Icon } from "./ui/Icon";
+import { useToast } from "./ui/Toast";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from 'react-i18next';
@@ -50,6 +50,7 @@ export default function EditVetVisitModal({
   const t = useTheme();
   const { t: tr } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { showToast } = useToast();
 
   const [dateValue, setDateValue] = useState<Date>(new Date());
   const [timeValue, setTimeValue] = useState<Date>(new Date());
@@ -105,7 +106,7 @@ export default function EditVetVisitModal({
     const trimmedNotes = notes.trim();
 
     if (!trimmedVet || !trimmedReason) {
-      Alert.alert(tr('vet.missingData'), tr('vet.missingDataMsg'));
+      showToast(tr('vet.missingData'), tr('vet.missingDataMsg'), 'error');
       return;
     }
 

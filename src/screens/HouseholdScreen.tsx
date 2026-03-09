@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Clipboard,
 } from "react-native";
+import { useToast } from "../components/ui/Toast";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -17,11 +18,15 @@ import { shadows } from "../theme/tokens";
 import { useAuth } from "../app/state/AuthContext";
 import { useHousehold } from "../app/state/HouseholdContext";
 import { usePremium } from "../app/state/PremiumContext";
+import { validateInviteCode } from "../services/firestore";
 import { Icon } from "../components/ui/Icon";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
 import ScreenContainer from "../components/layout/ScreenContainer";
 
 import { fonts } from '../theme/fonts';
+
+type PetOption = { id: string; name: string; type: string; avatarKey: string; source: 'mine' | 'target' };
+
 export default function HouseholdScreen() {
   const t = useTheme();
   const { t: tr } = useTranslation();
@@ -31,6 +36,7 @@ export default function HouseholdScreen() {
   const { isPremium } = usePremium();
   const {
     household,
+    householdId,
     members,
     isOwner,
     loading,
@@ -38,13 +44,21 @@ export default function HouseholdScreen() {
     joinHousehold,
     leaveHousehold,
     removeMember,
+    getPetsForHousehold,
   } = useHousehold();
 
+  const { showToast } = useToast();
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [showJoinInput, setShowJoinInput] = useState(false);
+  const [showMergeChoice, setShowMergeChoice] = useState(false);
+  const [showPetSelector, setShowPetSelector] = useState(false);
+  const [loadingPets, setLoadingPets] = useState(false);
+  const [allPets, setAllPets] = useState<PetOption[]>([]);
+  const [selectedPetIds, setSelectedPetIds] = useState<Set<string>>(new Set());
+  const [validatedTargetHouseholdId, setValidatedTargetHouseholdId] = useState<string | null>(null);
 
   const isInHousehold = (household?.memberIds?.length ?? 0) > 1;
 
@@ -59,7 +73,8 @@ export default function HouseholdScreen() {
       const code = await generateInviteCode();
       setInviteCode(code);
     } catch (error) {
-      Alert.alert(tr("common.error"), tr("household.generateError"));
+      console.error('[HouseholdScreen] Generate code error:', error);
+      showToast(tr("common.error"), tr("household.generateError"), 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -68,49 +83,96 @@ export default function HouseholdScreen() {
   const handleCopyCode = () => {
     if (inviteCode) {
       Clipboard.setString(inviteCode);
-      Alert.alert(tr("household.codeCopied"), tr("household.codeCopiedMsg"));
+      showToast(tr("household.codeCopied"), tr("household.codeCopiedMsg"), 'success');
     }
   };
 
   const handleJoinHousehold = async () => {
     if (!joinCode.trim()) return;
+    setShowMergeChoice(true);
+  };
 
-    // Ask merge or start fresh
-    Alert.alert(
-      tr("household.mergePets"),
-      tr("household.mergeDescription"),
-      [
-        {
-          text: tr("household.mergeNo"),
-          onPress: () => doJoin(false),
-        },
-        {
-          text: tr("household.mergeYes"),
-          onPress: () => doJoin(true),
-        },
-        {
-          text: tr("common.cancel"),
-          style: "cancel",
-        },
-      ]
-    );
+  const handleChoosePets = async () => {
+    setLoadingPets(true);
+    try {
+      const validation = await validateInviteCode(joinCode.trim());
+      if (!validation.valid || !validation.householdId) {
+        showToast(tr("common.error"), tr(`household.${validation.error || 'invalidCode'}`), 'error');
+        return;
+      }
+      setValidatedTargetHouseholdId(validation.householdId);
+
+      const [myPets, targetPets] = await Promise.all([
+        getPetsForHousehold(householdId!),
+        getPetsForHousehold(validation.householdId),
+      ]);
+
+      const pets: PetOption[] = [
+        ...myPets.map(p => ({ ...p, source: 'mine' as const })),
+        ...targetPets.map(p => ({ ...p, id: `target:${p.id}`, source: 'target' as const })),
+      ];
+      setAllPets(pets);
+      // Select all by default
+      setSelectedPetIds(new Set(pets.map(p => p.id)));
+      setShowMergeChoice(false);
+      setShowPetSelector(true);
+    } catch (error) {
+      console.error('Error loading pets:', error);
+      showToast(tr("common.error"), tr("household.joinError"), 'error');
+    } finally {
+      setLoadingPets(false);
+    }
+  };
+
+  const togglePet = (petId: string) => {
+    setSelectedPetIds(prev => {
+      const next = new Set(prev);
+      if (next.has(petId)) next.delete(petId);
+      else next.add(petId);
+      return next;
+    });
+  };
+
+  const doJoinWithSelected = async () => {
+    setShowPetSelector(false);
+    setIsJoining(true);
+    try {
+      const result = await joinHousehold(joinCode.trim(), false, Array.from(selectedPetIds));
+      if (result.success) {
+        setShowJoinInput(false);
+        setJoinCode("");
+        showToast(tr("household.joinSuccess"), tr("household.joinSuccessMsg"), 'success');
+      } else {
+        const errorKey = result.error || "invalidCode";
+        showToast(tr("common.error"), tr(`household.${errorKey}`), 'error');
+      }
+    } catch (error) {
+      console.error('Join error:', error);
+      showToast(tr("common.error"), tr("household.joinError"), 'error');
+    } finally {
+      setIsJoining(false);
+    }
   };
 
   const doJoin = async (merge: boolean) => {
+    setShowMergeChoice(false);
     setIsJoining(true);
     try {
+      console.log('Joining household with code:', joinCode.trim(), 'merge:', merge);
       const result = await joinHousehold(joinCode.trim(), merge);
+      console.log('Join result:', JSON.stringify(result));
 
       if (result.success) {
         setShowJoinInput(false);
         setJoinCode("");
-        Alert.alert(tr("household.joinSuccess"), tr("household.joinSuccessMsg"));
+        showToast(tr("household.joinSuccess"), tr("household.joinSuccessMsg"), 'success');
       } else {
         const errorKey = result.error || "invalidCode";
-        Alert.alert(tr("common.error"), tr(`household.${errorKey}`));
+        showToast(tr("common.error"), tr(`household.${errorKey}`), 'error');
       }
     } catch (error) {
-      Alert.alert(tr("common.error"), tr("household.joinError"));
+      console.error('Join error:', error);
+      showToast(tr("common.error"), tr("household.joinError"), 'error');
     } finally {
       setIsJoining(false);
     }
@@ -128,9 +190,9 @@ export default function HouseholdScreen() {
           onPress: async () => {
             try {
               await leaveHousehold();
-              Alert.alert(tr("household.leftSuccess"), tr("household.leftSuccessMsg"));
+              showToast(tr("household.leftSuccess"), tr("household.leftSuccessMsg"), 'success');
             } catch (error) {
-              Alert.alert(tr("common.error"), tr("household.leaveError"));
+              showToast(tr("common.error"), tr("household.leaveError"), 'error');
             }
           },
         },
@@ -151,7 +213,7 @@ export default function HouseholdScreen() {
             try {
               await removeMember(memberId);
             } catch (error) {
-              Alert.alert(tr("common.error"), tr("household.removeError"));
+              showToast(tr("common.error"), tr("household.removeError"), 'error');
             }
           },
         },
@@ -203,7 +265,7 @@ export default function HouseholdScreen() {
                   <Icon name="person" size={20} color={t.accent} />
                 </View>
                 <View style={styles.memberInfo}>
-                  <Text style={[styles.memberEmail, { color: t.text }]}>
+                  <Text numberOfLines={1} style={[styles.memberEmail, { color: t.text }]}>
                     {member.email}
                   </Text>
                   {household?.ownerId === member.id && (
@@ -338,6 +400,158 @@ export default function HouseholdScreen() {
                     )}
                   </AnimatedPressable>
                 </View>
+
+                {/* Merge choice */}
+                {showMergeChoice && (
+                  <View style={[styles.mergeChoiceContainer, { backgroundColor: t.bg, borderColor: t.border }]}>
+                    <Text style={[styles.mergeChoiceTitle, { color: t.text }]}>
+                      {tr("household.mergePets")}
+                    </Text>
+                    <Text style={[styles.mergeChoiceDesc, { color: t.textMuted }]}>
+                      {tr("household.mergeDescription")}
+                    </Text>
+                    <AnimatedPressable
+                      onPress={() => doJoin(true)}
+                      style={[styles.mergeOption, { backgroundColor: t.accentSoft, borderColor: t.accent }]}
+                      haptic="medium"
+                    >
+                      <Icon name="checkmark-circle" size={22} color={t.accent} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.mergeOptionTitle, { color: t.accent }]}>
+                          {tr("household.mergeYes")}
+                        </Text>
+                      </View>
+                    </AnimatedPressable>
+                    <AnimatedPressable
+                      onPress={handleChoosePets}
+                      style={[styles.mergeOption, { backgroundColor: t.card, borderColor: t.border }]}
+                      haptic="medium"
+                      disabled={loadingPets}
+                    >
+                      {loadingPets ? (
+                        <ActivityIndicator size="small" color={t.accent} />
+                      ) : (
+                        <Icon name="list" size={22} color={t.accent} />
+                      )}
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.mergeOptionTitle, { color: t.accent }]}>
+                          {tr("household.choosePets")}
+                        </Text>
+                      </View>
+                    </AnimatedPressable>
+                    <AnimatedPressable
+                      onPress={() => doJoin(false)}
+                      style={[styles.mergeOption, { backgroundColor: t.card, borderColor: t.border }]}
+                      haptic="medium"
+                    >
+                      <Icon name="close-circle" size={22} color={t.textMuted} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.mergeOptionTitle, { color: t.text }]}>
+                          {tr("household.mergeNo")}
+                        </Text>
+                      </View>
+                    </AnimatedPressable>
+                    <AnimatedPressable
+                      onPress={() => setShowMergeChoice(false)}
+                      haptic="light"
+                      style={{ alignSelf: "center", paddingVertical: 8 }}
+                    >
+                      <Text style={[styles.joinCancelText, { color: t.textMuted }]}>
+                        {tr("common.cancel")}
+                      </Text>
+                    </AnimatedPressable>
+                  </View>
+                )}
+
+                {/* Pet selector */}
+                {showPetSelector && (
+                  <View style={[styles.mergeChoiceContainer, { backgroundColor: t.bg, borderColor: t.border }]}>
+                    <Text style={[styles.mergeChoiceTitle, { color: t.text }]}>
+                      {tr("household.choosePetsTitle")}
+                    </Text>
+                    <Text style={[styles.mergeChoiceDesc, { color: t.textMuted }]}>
+                      {tr("household.choosePetsDesc")}
+                    </Text>
+
+                    {allPets.filter(p => p.source === 'mine').length > 0 && (
+                      <Text style={[styles.petSectionLabel, { color: t.textMuted }]}>
+                        {tr("household.myPets")}
+                      </Text>
+                    )}
+                    {allPets.filter(p => p.source === 'mine').map(pet => (
+                      <AnimatedPressable
+                        key={pet.id}
+                        onPress={() => togglePet(pet.id)}
+                        style={[
+                          styles.petOption,
+                          {
+                            backgroundColor: selectedPetIds.has(pet.id) ? t.accentSoft : t.card,
+                            borderColor: selectedPetIds.has(pet.id) ? t.accent : t.border,
+                          },
+                        ]}
+                        haptic="light"
+                      >
+                        <Icon
+                          name={selectedPetIds.has(pet.id) ? "checkbox" : "square-outline"}
+                          size={22}
+                          color={selectedPetIds.has(pet.id) ? t.accent : t.textMuted}
+                        />
+                        <Text style={[styles.petOptionName, { color: t.text }]}>
+                          {pet.name}
+                        </Text>
+                      </AnimatedPressable>
+                    ))}
+
+                    {allPets.filter(p => p.source === 'target').length > 0 && (
+                      <Text style={[styles.petSectionLabel, { color: t.textMuted }]}>
+                        {tr("household.theirPets")}
+                      </Text>
+                    )}
+                    {allPets.filter(p => p.source === 'target').map(pet => (
+                      <AnimatedPressable
+                        key={pet.id}
+                        onPress={() => togglePet(pet.id)}
+                        style={[
+                          styles.petOption,
+                          {
+                            backgroundColor: selectedPetIds.has(pet.id) ? t.accentSoft : t.card,
+                            borderColor: selectedPetIds.has(pet.id) ? t.accent : t.border,
+                          },
+                        ]}
+                        haptic="light"
+                      >
+                        <Icon
+                          name={selectedPetIds.has(pet.id) ? "checkbox" : "square-outline"}
+                          size={22}
+                          color={selectedPetIds.has(pet.id) ? t.accent : t.textMuted}
+                        />
+                        <Text style={[styles.petOptionName, { color: t.text }]}>
+                          {pet.name}
+                        </Text>
+                      </AnimatedPressable>
+                    ))}
+
+                    <AnimatedPressable
+                      onPress={doJoinWithSelected}
+                      style={[styles.joinSubmitBtn, { backgroundColor: t.accent, marginTop: 8 }]}
+                      haptic="medium"
+                      disabled={selectedPetIds.size === 0}
+                    >
+                      <Text style={styles.joinSubmitText}>
+                        {tr("household.confirmSelection")}
+                      </Text>
+                    </AnimatedPressable>
+                    <AnimatedPressable
+                      onPress={() => { setShowPetSelector(false); setShowMergeChoice(true); }}
+                      haptic="light"
+                      style={{ alignSelf: "center", paddingVertical: 8 }}
+                    >
+                      <Text style={[styles.joinCancelText, { color: t.textMuted }]}>
+                        {tr("common.cancel")}
+                      </Text>
+                    </AnimatedPressable>
+                  </View>
+                )}
               </View>
             )}
 
@@ -481,7 +695,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   memberInfo: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  memberEmail: { fontSize: 15, fontFamily: fonts.semiBold },
+  memberEmail: { fontSize: 15, fontFamily: fonts.semiBold, flexShrink: 1 },
   ownerBadge: { fontSize: 12, fontFamily: fonts.extraBold },
   youBadge: { fontSize: 12, fontFamily: fonts.medium },
 
@@ -566,6 +780,41 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   joinSubmitText: { color: "#fff", fontSize: 15, fontFamily: fonts.bold },
+
+  mergeChoiceContainer: {
+    marginTop: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    gap: 10,
+  },
+  mergeChoiceTitle: { fontSize: 15, fontFamily: fonts.bold },
+  mergeChoiceDesc: { fontSize: 13, fontFamily: fonts.medium, lineHeight: 18 },
+  mergeOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  mergeOptionTitle: { fontSize: 14, fontFamily: fonts.semiBold },
+
+  petSectionLabel: {
+    fontSize: 11,
+    fontFamily: fonts.black,
+    letterSpacing: 0.6,
+    marginTop: 6,
+  },
+  petOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  petOptionName: { fontSize: 14, fontFamily: fonts.semiBold },
 
   noteCard: {
     flexDirection: "row",
