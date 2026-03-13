@@ -42,7 +42,7 @@ export default function FullscreenSplash({ onFinish }: Props) {
     <Animated.View style={[styles.container, { opacity: fadeAll }]}>
       <View style={styles.content}>
         <Animated.View style={{ opacity: logoOpacity, transform: [{ scale: logoScale }] }}>
-          <Image source={require('../../assets/icon.png')} style={styles.logo} />
+          <Image source={require('../../assets/splash-icon.png')} style={styles.logo} />
         </Animated.View>
 
         <Animated.Text
@@ -88,12 +88,15 @@ const styles = StyleSheet.create({
     fontSize: 34,
     color: '#FFFFFF',
     letterSpacing: 1,
+    textAlign: 'center',
   },
   slogan: {
     fontFamily: fonts.medium,
     fontSize: 15,
     color: '#D4621A',
     letterSpacing: 0.3,
+    textAlign: 'center',
+    paddingHorizontal: 32,
   },
   footer: {
     fontFamily: fonts.semiBold,

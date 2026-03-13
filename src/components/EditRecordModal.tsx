@@ -7,6 +7,8 @@ import {
   StyleSheet,
   TextInput,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -97,6 +99,10 @@ export default function EditRecordModal({
       onRequestClose={onClose}
     >
       <Pressable style={styles.backdrop} onPress={onClose} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.modalKeyboard}
+      >
       <View
         style={[
           styles.modalCard,
@@ -214,17 +220,18 @@ export default function EditRecordModal({
           </Pressable>
         </View>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
+  modalKeyboard: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
   modalCard: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderWidth: 1,

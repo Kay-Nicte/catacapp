@@ -11,6 +11,8 @@ import {
   ScrollView,
   ActivityIndicator,
   RefreshControl,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useToast } from "../components/ui/Toast";
 import { useTranslation } from 'react-i18next';
@@ -386,6 +388,10 @@ export default function RecordsScreen() {
         onRequestClose={() => setModalOpen(false)}
       >
         <Pressable style={styles.backdrop} onPress={() => setModalOpen(false)} />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.modalKeyboard}
+        >
         <View
           style={[
             styles.modalCard,
@@ -473,6 +479,7 @@ export default function RecordsScreen() {
             </Pressable>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Edit Modal */}
@@ -631,11 +638,11 @@ const styles = StyleSheet.create({
   },
 
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
+  modalKeyboard: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
   modalCard: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderWidth: 1,
